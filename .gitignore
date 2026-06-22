@@ -1,0 +1,6 @@
+/.env
+/.vscode
+/ml/data
+/monitoring
+/notebooks
+/producer_checkpoint.txt

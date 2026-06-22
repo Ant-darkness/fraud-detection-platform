@@ -1,0 +1,23 @@
+artifact_path: file:C:/Users/Abely/Desktop/fraud-detection-platform/mlruns/1/models/m-1ab2a0d2a8664a77a575be3315914e7d/artifacts
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.skops
+    predict_fn: predict
+    python_version: 3.12.13
+  sklearn:
+    code: null
+    pickled_model: model.skops
+    serialization_format: skops
+    sklearn_version: 1.8.0
+    skops_trusted_types: null
+mlflow_version: 3.14.0
+model_id: m-1ab2a0d2a8664a77a575be3315914e7d
+model_size_bytes: 88740
+model_uuid: m-1ab2a0d2a8664a77a575be3315914e7d
+prompts: null
+run_id: 30bf0ad968974098b90bead61cedf03b
+utc_time_created: '2026-06-20 23:30:24.748798'

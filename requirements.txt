@@ -1,9 +1,7 @@
-apache-airflow
 
 fastapi
 uvicorn
 
-sqlalchemy
 pyodbc
 
 pandas

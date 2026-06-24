@@ -1,7 +1,6 @@
 import pyodbc
 import pandas as pd
 
-
 conn = pyodbc.connect(
     "DRIVER={ODBC Driver 18 for SQL Server};"
     "SERVER=localhost,1455;"
@@ -14,30 +13,30 @@ conn = pyodbc.connect(
 
 query = """
 SELECT
-
-    t.step,
-    t.type,
-    t.amount,
-    t.oldbalanceOrg,
-    t.newbalanceOrig,
-    t.oldbalanceDest,
-    t.newbalanceDest,
-
-    f.final_label AS isFraud
-
-FROM transactions t
-
-INNER JOIN training_feedback f
-ON t.transaction_id = f.transaction_id
+    step,
+    type,
+    amount,
+    oldbalanceOrg,
+    newbalanceOrig,
+    oldbalanceDest,
+    newbalanceDest,
+    isFraud
+FROM transactions
 """
 
+print("Loading dataset...")
+
 df = pd.read_sql(query, conn)
+df = df.drop_duplicates()
 
 print(df.shape)
+print(df["isFraud"].value_counts())
 
 df.to_parquet(
-    "ml/data/training_feedback.parquet",
+    "backend/ml/fraud_training.parquet",
     index=False
 )
 
-print("Training dataset created.")
+print("Saved successfully.")
+
+conn.close()

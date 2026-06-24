@@ -23,3 +23,16 @@ ML Model Training
       │
       ▼
 Fraud Prediction API
+
+
+CREATION OF DATASET FOR RETRAINING
+
+Every Week
+      ↓
+training_feedback
+      ↓
+join transactions
+      ↓
+Give parquet
+      ↓
+retrain model

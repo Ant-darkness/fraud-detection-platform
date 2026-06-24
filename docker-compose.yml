@@ -1,5 +1,5 @@
 x-airflow-common: &airflow-common
-  build: 
+  build:
     context: .
     dockerfile: Dockerfile.airflow
 
@@ -13,7 +13,7 @@ x-airflow-common: &airflow-common
     - ./airflow_pipeline/dags:/opt/airflow/dags
     - ./airflow_pipeline/logs:/opt/airflow/logs
     - ./airflow_pipeline/plugins:/opt/airflow/plugins
-    - ./:/opt/project
+    - ./:/opt/airflow
 
   networks:
     - fraud-network
@@ -55,7 +55,6 @@ services:
     networks:
       - fraud-network
 
-
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: kafka
@@ -75,7 +74,6 @@ services:
     restart: unless-stopped
     networks:
       - fraud-network
-
 
   postgres:
     image: postgres:15
@@ -106,9 +104,7 @@ services:
       - postgres
 
     command: >
-      bash -c "
-      airflow db migrate 
-      "
+      bash -c " airflow db migrate  "
 
   airflow-webserver:
     <<: *airflow-common
@@ -137,21 +133,21 @@ services:
 
     restart: unless-stopped
 
-#  fraud-api:
-#    build:
-#      context: .
-#      dockerfile: Dockerfile.api
+  fraud-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
 
-#    container_name: fraud-api 
+    container_name: fraud-api
 
-#    volumes:
-#      - ./:/app
+    volumes:
+      - ./:/app
 
-#    ports:
-#      - "8000:8000"
+    ports:
+      - "8000:8000"
 
-#    networks:
-#      - fraud-network
+    networks:
+      - fraud-network
 
 networks:
   fraud-network:
@@ -160,4 +156,4 @@ volumes:
   sqlserver_data:
   postgres_data:
 
-#"desktop\fraud-detection-platform"
+    #"desktop\fraud-detection-platform"

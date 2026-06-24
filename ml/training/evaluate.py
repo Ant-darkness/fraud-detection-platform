@@ -1,12 +1,19 @@
-# ml/training/evaluate.py
-
-import pandas as pd
+from ml.training.metrics import calculate_metrics
 
 
-def summarize_results(results):
+def evaluate_model(model, X, y):
 
-    df = pd.DataFrame(results)
+    # predictions
+    y_pred = model.predict(X)
 
-    summary = df.mean()
+    # probabilities
+    y_prob = model.predict_proba(X)[:, 1]
 
-    return summary.to_dict()
+    # delegate all logic to metrics.py
+    metrics = calculate_metrics(
+        y_true=y,
+        y_pred=y_pred,
+        y_prob=y_prob
+    )
+
+    return metrics

@@ -6,7 +6,7 @@ from datetime import datetime
 
 with DAG(
     dag_id="fraud_model_retraining",
-    start_date=datetime(2026, 1, 1),
+    start_date=datetime(2025, 1, 1),
     schedule="@weekly",
     catchup=False,
 ) as dag:
@@ -14,7 +14,7 @@ with DAG(
     check_data = BashOperator(
         task_id="check_data",
         bash_command="""
-        cd /opt/project &&
+        cd /opt/airflow &&
         python -m ml.training.check_data
         """
     )
@@ -22,7 +22,7 @@ with DAG(
     retrain_model = BashOperator(
         task_id="retrain_model",
         bash_command="""
-        cd /opt/project &&
+        cd /opt/airflow &&
         python -m ml.training.retrain_model
         """
     )

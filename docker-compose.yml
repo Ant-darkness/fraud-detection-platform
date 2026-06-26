@@ -7,7 +7,10 @@ x-airflow-common: &airflow-common
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-postgres:5432/airflow
     AIRFLOW__CORE__LOAD_EXAMPLES: "False"
-    AIRFLOW__CORE__SIMPLE_AUTH_MANAGER__USERS: "admin:admin123,viewer:viewer123"
+    AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: "Abely:admin"
+    AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "True"
+
+    PYTHONPATH: /opt/airflow
 
   volumes:
     - ./airflow_pipeline/dags:/opt/airflow/dags

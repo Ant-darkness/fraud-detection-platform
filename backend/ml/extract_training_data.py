@@ -4,7 +4,7 @@ import pandas as pd
 
 conn = pyodbc.connect(
     "DRIVER={ODBC Driver 18 for SQL Server};"
-    "SERVER=localhost,1455;"
+    "SERVER=sqlserver,1433;"
     "DATABASE=FraudDB;"
     "UID=sa;"
     "PWD=Fraud@2026;"
@@ -30,14 +30,15 @@ FROM transactions t
 INNER JOIN training_feedback f
 ON t.transaction_id = f.transaction_id
 """
+def main():
 
-df = pd.read_sql(query, conn)
+    df = pd.read_sql(query, conn)
 
-print(df.shape)
+    print(df.shape)
 
-df.to_parquet(
-    "ml/data/training_feedback.parquet",
-    index=False
-)
+    df.to_parquet(
+        "ml/data/training_feedback.parquet",
+        index=False
+    )
 
-print("Training dataset created.")
+    print("Training dataset created.")

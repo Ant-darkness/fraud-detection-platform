@@ -22,3 +22,5 @@ def predict(
     return predict_transaction(
         request.model_dump()
     )
+    
+

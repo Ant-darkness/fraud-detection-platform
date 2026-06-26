@@ -18,4 +18,8 @@ RUN pip install --no-cache-dir \
     apache-airflow-providers-apache-kafka \
     pandas \
     pyodbc \
-    sqlalchemy
+    sqlalchemy \
+    scikit-learn \
+    lightgbm \
+    joblib \
+    pyarrow

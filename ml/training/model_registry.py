@@ -1,44 +1,34 @@
-from backend.app.database.connection import (
-    create_connection
-)
+from backend.app.database.connection import get_connection
 
 
 def get_next_version():
 
-    conn = create_connection()
-
+    conn = get_connection()
     cursor = conn.cursor()
 
     cursor.execute(
         """
-        SELECT
-            ISNULL(
-                MAX(model_version),
-                0
-            )
+        SELECT ISNULL(MAX(model_version),0)
         FROM model_registry
         """
     )
 
-    current = cursor.fetchone()[0]
+    version = cursor.fetchone()[0]
 
     conn.close()
 
-    return current + 1
+    return version + 1
+
 
 def register_model(
     model_name,
     version,
     model_path,
-    dataset_size,
-    precision_score,
-    recall_score,
-    f1_score,
-    roc_auc
+    metrics,
+    dataset_size
 ):
 
-    conn = create_connection()
-
+    conn = get_connection()
     cursor = conn.cursor()
 
     cursor.execute(
@@ -48,27 +38,31 @@ def register_model(
             model_name,
             model_version,
             model_path,
-            dataset_size,
+
             precision_score,
             recall_score,
             f1_score,
             roc_auc,
+
+            dataset_size,
             is_active
 
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
 
         model_name,
         version,
         model_path,
+
+        metrics["precision"],
+        metrics["recall"],
+        metrics["f1"],
+        metrics["roc_auc"],
+
         dataset_size,
-        precision_score,
-        recall_score,
-        f1_score,
-        roc_auc
+        0
     )
 
     conn.commit()
-
     conn.close()

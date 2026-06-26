@@ -45,11 +45,47 @@ DELETE VOLUME
 
 TO GET PASSWORD AND USERNAME FOR AIRFLOW LOGIN WEB
 `docker logs airflow-webserver --tail 50`
+OR
+`docker compose exec airflow-webserver cat /opt/airflow/simple_auth_manager__passwords.json`
+
+TEST DAG IN TERMINAL
+`docker exec -it airflow-webserver bash`
+THEN(Huu n mfano asee)
+`python -c "from ml.training.train_final_model import main"`
 
 TO CHECK THE CREATED DAGS
 `docker exec -it airflow-webserver airflow dags reserialize`
         THEN
 `docker exec -it airflow-webserver airflow dags list`
+
+DEBUG DAGS
+`docker exec -it airflow-scheduler airflow dags list`
+`docker exec -it airflow-scheduler airflow dags list-import-errors`
+ANSWERS_ERROR Dags does'nt run return NO DATA FOUND
+`docker exec -it airflow-scheduler bash`
+THEN
+`airflow config get-value core dags_folder`
+ALSO
+`echo $AIRFLOW_HOME`
+ALSO
+`ls -la /opt/airflow/dags`
+ALSO
+`cat /opt/airflow/airflow.cfg | grep dags_folder`
+ALSO
+RUN YOUR DAGS HERE
+`python /opt/airflow/dags/build_feedback_dataset_dag.py`
+`python /opt/airflow/dags/fraud_retraining_dag.py`
+IF THERE IS ERROR then run
+`airflow dags reserialize`
+THEN
+`airflow dags list`
+IF RETURN no data found
+THEN
+`airflow db check`
+ALSO
+`airflow jobs check --job-type SchedulerJob`
+
+
 
 
 

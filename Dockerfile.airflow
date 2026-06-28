@@ -13,11 +13,9 @@ USER airflow
 
 RUN pip install --no-cache-dir \
     psycopg2-binary \
-    apache-airflow-providers-microsoft-mssql \
     apache-airflow-providers-postgres \
     apache-airflow-providers-apache-kafka \
     pandas \
-    pyodbc \
     sqlalchemy \
     scikit-learn \
     lightgbm \

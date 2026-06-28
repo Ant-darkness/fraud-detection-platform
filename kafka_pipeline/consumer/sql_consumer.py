@@ -1,25 +1,12 @@
 from kafka import KafkaConsumer
+from backend.app.database.connection import get_connection
 import json
-import pyodbc
+import psycopg2
 import time
 
+conn = get_connection()
+cursor = conn.cursor()
 
-def create_connection():
-    conn = pyodbc.connect(
-        "DRIVER={ODBC Driver 18 for SQL Server};"
-        "SERVER=localhost,1455;"
-        "DATABASE=FraudDB;"
-        "UID=sa;"
-        "PWD=Fraud@2026;"
-        "Encrypt=no;"
-        "TrustServerCertificate=yes;"
-    )
-    cursor = conn.cursor()
-    cursor.fast_executemany = True
-    return conn, cursor
-
-
-conn, cursor = create_connection()
 
 consumer = KafkaConsumer(
     "transactions",
@@ -30,7 +17,7 @@ consumer = KafkaConsumer(
     api_version=(3, 5, 0)
 )
 
-print("SQL Consumer running...")
+print("Transactions Consumer running...")
 
 count = 0
 BATCH_SIZE = 500
@@ -52,24 +39,23 @@ while True:
                     newbalanceOrig,
                     nameDest,
                     oldbalanceDest,
-                    newbalanceDest,
-                    isFraud,
-                    isFlaggedFraud
+                    newbalanceDest
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
-                tx.get("transaction_id"),
-                int(tx["step"]),
-                str(tx["type"]),
-                float(tx["amount"]),
-                str(tx["nameOrig"]),
-                float(tx["oldbalanceOrg"]),
-                float(tx["newbalanceOrig"]),
-                str(tx["nameDest"]),
-                float(tx["oldbalanceDest"]),
-                float(tx["newbalanceDest"]),
-                int(tx.get("isFraud", 0)),
-                int(tx.get("isFlaggedFraud", 0))
+                (
+                    tx.get("transaction_id"),
+                    int(tx["step"]),
+                    str(tx["type"]),
+                    float(tx["amount"]),
+                    str(tx["nameOrig"]),
+                    float(tx["oldbalanceOrg"]),
+                    float(tx["newbalanceOrig"]),
+                    str(tx["nameDest"]),
+                    float(tx["oldbalanceDest"]),
+                    float(tx["newbalanceDest"])
+                    
+                )
             )
 
             count += 1
@@ -78,10 +64,11 @@ while True:
                 conn.commit()
                 print(f"Committed {count} rows")
 
-    except pyodbc.Error as e:
+    except psycopg2.Error as e:
         print("DB error:", e)
         time.sleep(5)
-        conn, cursor = create_connection()
+        conn = get_connection()
+        cursor = conn.cursor()
 
     except Exception as e:
         print("Error:", e)

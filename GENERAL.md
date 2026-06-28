@@ -23,3 +23,56 @@ Retrain
 fraud_detector_v2.pkl
         ↓
 Production
+
+
+
+Customer Transaction
+        │
+        ▼
+Kafka
+        │
+        ├──────────────► PostgreSQL (transactions)
+        │
+        ▼
+Fraud Predictor
+        │
+        ▼
+fraud_predictions
+        │
+        ▼
+Threshold
+        │
+        ▼
+fraud_review_queue
+        │
+        ▼
+Officer Review
+        │
+        ▼
+training_feedback.parquet
+        │
+        ▼
+Airflow Retraining
+
+
+
+
+PIPELINE
+
+
+extract reviewed data
+        │
+        ▼
+train model
+        │
+        ▼
+evaluate
+        │
+        ▼
+register model
+        │
+        ▼
+activate model
+        │
+        ▼
+reload api

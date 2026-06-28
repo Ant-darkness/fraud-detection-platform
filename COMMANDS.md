@@ -25,8 +25,11 @@ CHECK TOPICS
 DELETE TOPIC
 `docker exec -it kafka kafka-topics --delete --topic transactions --bootstrap-server localhost:9092`
 
-ENTERE SQL SERVER SHELL
+ENTER SQL SERVER DATABASE BASH
 `docker exec -it sqlserver /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "Fraud@2026" -C`
+
+ENTER POSTGRESQL DATABASE BASH
+`docker exec -it fraud-postgres psql -U postgres -d FraudDB`
 
 TO CHECK LOGS
 `docker logs sqlserver(container) --tail 50`
@@ -58,10 +61,14 @@ TO CHECK THE CREATED DAGS
         THEN
 `docker exec -it airflow-webserver airflow dags list`
 
+
+
 DEBUG DAGS
 `docker exec -it airflow-scheduler airflow dags list`
 `docker exec -it airflow-scheduler airflow dags list-import-errors`
+
 ANSWERS_ERROR Dags does'nt run return NO DATA FOUND
+
 `docker exec -it airflow-scheduler bash`
 THEN
 `airflow config get-value core dags_folder`
@@ -84,6 +91,10 @@ THEN
 `airflow db check`
 ALSO
 `airflow jobs check --job-type SchedulerJob`
+
+
+TO VERIFY IF FILE IS PRESENT ON CONTAINER
+`docker exec -it fraud-api ls -R /app/ml/models`
 
 
 

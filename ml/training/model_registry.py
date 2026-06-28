@@ -1,4 +1,4 @@
-from backend.app.database.connection import get_connection
+from backend.app.database.connection import get_connection 
 
 
 def get_next_version():
@@ -8,7 +8,7 @@ def get_next_version():
 
     cursor.execute(
         """
-        SELECT ISNULL(MAX(model_version),0)
+        SELECT COALESCE(MAX(model_version),0)
         FROM model_registry
         """
     )
@@ -48,20 +48,20 @@ def register_model(
             is_active
 
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """,
 
-        model_name,
-        version,
-        model_path,
-
-        metrics["precision"],
-        metrics["recall"],
-        metrics["f1"],
-        metrics["roc_auc"],
-
-        dataset_size,
-        0
+        (
+            model_name,
+            version,
+            model_path,
+            metrics["precision"],
+            metrics["recall"],
+            metrics["f1"],
+            metrics["roc_auc"],
+            dataset_size,
+            False
+        )
     )
 
     conn.commit()

@@ -22,7 +22,7 @@ from ml.training.model_registry import (
 
 
 DATA_PATH = Path(
-    "ml/data/training_feedback.parquet"
+    "ml/data/fraud_training.parquet"
 )
 
 MODEL_DIR = Path(
@@ -169,12 +169,9 @@ def main():
     register_model(
         model_name="FraudDetector",
         version=version,
-        model_path=str(model_path),
-        dataset_size=len(df),
-        precision_score=precision,
-        recall_score=recall,
-        f1_score=f1,
-        roc_auc=roc_auc
+        metrics=metrics,
+        model_path=model_path.as_posix(),
+        dataset_size=len(df)
     )
 
     print("=" * 60)

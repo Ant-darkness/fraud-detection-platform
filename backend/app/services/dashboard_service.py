@@ -15,7 +15,7 @@ def dashboard_summary():
     cursor.execute("""
         SELECT COUNT(*)
         FROM fraud_predictions
-        WHERE prediction = 1
+        WHERE prediction = TRUE
     """)
     predicted_frauds = cursor.fetchone()[0]
 
@@ -29,7 +29,7 @@ def dashboard_summary():
     cursor.execute("""
         SELECT COUNT(*)
         FROM fraud_review_queue
-        WHERE final_label=1
+        WHERE final_label=TRUE
     """)
     confirmed_frauds = cursor.fetchone()[0]
 
@@ -53,7 +53,7 @@ def dashboard_summary():
 def recent_predictions():
 
     cursor.execute("""
-        SELECT TOP 100
+        SELECT 
             prediction_id,
             transaction_id,
             fraud_probability,
@@ -61,6 +61,7 @@ def recent_predictions():
             created_at
         FROM fraud_predictions
         ORDER BY created_at DESC
+        LIMIT 100
     """)
 
     rows = cursor.fetchall()
@@ -103,13 +104,13 @@ def pending_reviews():
 def fraud_trend():
 
     cursor.execute("""
-        SELECT
-            CAST(reviewed_at AS DATE) AS day,
-            COUNT(*) AS frauds
-        FROM fraud_review_queue
-        WHERE final_label = 1
-        GROUP BY CAST(reviewed_at AS DATE)
-        ORDER BY day
+       SELECT
+    reviewed_at::DATE AS day,
+    COUNT(*) AS frauds
+    FROM fraud_review_queue
+    WHERE final_label = TRUE
+    GROUP BY reviewed_at::DATE
+    ORDER BY day;
     """)
 
     rows = cursor.fetchall()

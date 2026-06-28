@@ -12,7 +12,7 @@ producer = KafkaProducer(
 
 df = pd.read_csv("C:/Users/Abely/Desktop/datasets/Fraud_dataset.csv")
 
-print("Inaanza kutuma data...")
+print("Starting to send data...........")
 count = 0
 
 for _, row in df.iterrows():
@@ -27,4 +27,4 @@ for _, row in df.iterrows():
 
 
 producer.flush()
-print("Data zote zimetumwa!")
+print("All data sent............!")

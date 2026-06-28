@@ -1,62 +1,96 @@
 from backend.app.database.connection import get_connection
 
-conn = get_connection()
-cursor = conn.cursor()
-
 def get_pending_reviews():
+    
+    conn = get_connection()
+    
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT
+                review_id,
+                transaction_id,
+                fraud_probability,
+                status
+            FROM fraud_review_queue
+            WHERE status='PENDING'
+        """)
 
+        rows = cursor.fetchall()
+        columns = [
+            "review_id",
+            "transaction_id",
+            "fraud_probability",
+            "status"
+        ]
+        return [
+            dict(zip(columns, row))
+            for row in rows
+        ]
+    
+    finally:
+        cursor.close()
+        conn.close()
 
-    cursor.execute("""
-        SELECT
-            review_id,
-            transaction_id,
-            fraud_probability,
-            status
-        FROM fraud_review_queue
-        WHERE status='PENDING'
-    """)
-
-    rows = cursor.fetchall()
-
-    conn.close()
-
-    return rows
+    
 
 def approve_review(review_id: int, officer_name: str):
+    conn = get_connection()
     
-    cursor.execute(
-        """
-    UPDATE fraud_review_queue
-    SET
-        status='APPROVED',
-        final_label=1,
-        review_at=GETDATE()
-    WHERE review_id=?
-    """,
-        review_id
-    )
-
-    conn.commit()
-
-    return {"message": "approved"}
-
-def reject_review(review_id: int):
-    
-    cursor.execute(
-        """
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
         UPDATE fraud_review_queue
         SET
-            status='REJECTED',
-            final_label=0,
-            reviewed_at=GETDATE()
-        WHERE review_id=?
+            status='APPROVED',
+            final_label=TRUE,
+            reviewed_by=%s,
+            reviewed_at=CURRENT_TIMESTAMP
+        WHERE review_id=%s
         """,
-        review_id
-    )
+            (
+                officer_name,
+                review_id
+             )
+        )
 
-    conn.commit()
+        conn.commit()
+        return {"message": "approved"}
+    finally:
+        cursor.close()
+        conn.close()
 
-    return {"message": "rejected"}
+    
+
+def reject_review(review_id: int, officer_name: str):
+    conn = get_connection()
+    
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            UPDATE fraud_review_queue
+            SET
+                status='REJECTED',
+                final_label=FALSE,
+                reviewed_by=%s,
+                reviewed_at=CURRENT_TIMESTAMP
+            WHERE review_id=%s
+            """,
+            (
+                officer_name,
+                review_id
+             )
+        )
+
+        conn.commit()
+        return {"message": "rejected"}
+    finally:
+        cursor.close()
+        conn.close()
+
+    
 
 
 

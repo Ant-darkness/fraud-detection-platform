@@ -1,30 +1,17 @@
 from kafka import KafkaConsumer
 from ml.inference.predictor import FraudPredictor
+from backend.app.database.connection import get_connection
 import json
-import pyodbc
 import time
+import psycopg2
 
 
 predictor = FraudPredictor()
 
 THRESHOLD = 0.9
 
-
-def create_connection():
-    conn = pyodbc.connect(
-        "DRIVER={ODBC Driver 18 for SQL Server};"
-        "SERVER=localhost,1455;"
-        "DATABASE=FraudDB;"
-        "UID=sa;"
-        "PWD=Fraud@2026;"
-        "Encrypt=no;"
-        "TrustServerCertificate=yes;"
-    )
-    cursor = conn.cursor()
-    return conn, cursor
-
-
-conn, cursor = create_connection()
+conn = get_connection()
+cursor = conn.cursor()
 
 consumer = KafkaConsumer(
     "transactions",
@@ -65,11 +52,11 @@ while True:
                     fraud_probability,
                     prediction
                 )
-                VALUES (?, ?, ?)
+                VALUES (%s, %s, %s)
                 """,
-                tx.get("transaction_id"),
+                (tx.get("transaction_id"),
                 probability,
-                prediction
+                prediction)
             )
 
             # 2. Push to review queue if risky
@@ -81,11 +68,11 @@ while True:
                         fraud_probability,
                         status
                     )
-                    VALUES (?, ?, ?)
+                    VALUES (%s, %s, %s)
                     """,
-                    tx.get("transaction_id"),
+                    (tx.get("transaction_id"),
                     probability,
-                    "PENDING"
+                    "PENDING")
                 )
 
             conn.commit()
@@ -97,10 +84,11 @@ while True:
                 f"PRED={prediction}"
             )
 
-    except pyodbc.Error as e:
+    except psycopg2.Error as e:
         print("DB error:", e)
         time.sleep(5)
-        conn, cursor = create_connection()
+        conn = get_connection()
+        cursor = conn.cursor()
 
     except Exception as e:
         print("Error:", e)

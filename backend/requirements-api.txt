@@ -6,3 +6,6 @@ scikit-learn
 lightgbm
 joblib
 pyarrow
+psycopg2-binary
+
+#pip install python-jose[cryptography] passlib[bcrypt] python-multipart

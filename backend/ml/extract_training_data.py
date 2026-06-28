@@ -1,16 +1,8 @@
-import pyodbc
 import pandas as pd
+from backend.app.database.connection import get_connection
 
 
-conn = pyodbc.connect(
-    "DRIVER={ODBC Driver 18 for SQL Server};"
-    "SERVER=sqlserver,1433;"
-    "DATABASE=FraudDB;"
-    "UID=sa;"
-    "PWD=Fraud@2026;"
-    "Encrypt=no;"
-    "TrustServerCertificate=yes;"
-)
+conn =get_connection()
 
 query = """
 SELECT

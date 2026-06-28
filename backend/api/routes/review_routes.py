@@ -1,5 +1,5 @@
-from fastapi import APIRouter
-
+from fastapi import APIRouter, Depends
+from backend.app.core.dependencies import get_current_officer
 from backend.app.services.review_service import (
     get_pending_reviews,
     approve_review,
@@ -13,7 +13,7 @@ router = APIRouter(
 
 
 @router.get("/pending")
-def pending():
+def pending(officer=Depends(get_current_officer)):
 
     return get_pending_reviews()
 
@@ -21,22 +21,22 @@ def pending():
 @router.put("/{review_id}/approve")
 def approve(
     review_id: int,
-    officer_name: str
+    officer=Depends(get_current_officer)
 ):
 
     return approve_review(
         review_id,
-        officer_name
+        officer["full_name"]
     )
 
 
 @router.put("/{review_id}/reject")
 def reject(
     review_id: int,
-    officer_name: str
+    officer=Depends(get_current_officer)
 ):
 
     return reject_review(
         review_id,
-        officer_name
+        officer["full_name"]
     )

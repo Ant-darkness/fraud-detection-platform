@@ -2,8 +2,6 @@
 fastapi
 uvicorn
 
-pyodbc
-
 pandas
 numpy
 

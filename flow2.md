@@ -36,3 +36,6 @@ join transactions
 Give parquet
       ↓
 retrain model
+
+
+

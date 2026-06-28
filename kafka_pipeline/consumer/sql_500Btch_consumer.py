@@ -1,6 +1,6 @@
 from kafka import KafkaConsumer
+from backend.app.database.connection import get_connection
 import json
-import pyodbc
 import time
 
 BATCH_SIZE = 500
@@ -8,17 +8,7 @@ BATCH_SIZE = 500
 # -----------------------
 # DB CONNECTION
 # -----------------------
-conn = pyodbc.connect(
-    "DRIVER={ODBC Driver 18 for SQL Server};"
-    "SERVER=localhost,1455;"
-    "DATABASE=FraudDB;"
-    "UID=sa;"
-    "PWD=Fraud@2026;"
-    "Encrypt=no;"
-    "TrustServerCertificate=yes;"
-    "Connection Timeout=30;"
-)
-
+conn = get_connection()
 cursor = conn.cursor()
 
 # -----------------------
@@ -45,7 +35,7 @@ def insert_batch(batch):
         oldbalanceOrg, newbalanceOrig,
         nameDest, oldbalanceDest,
         newbalanceDest, isFraud, isFlaggedFraud
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
 
     cursor.executemany(query, batch)

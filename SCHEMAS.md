@@ -1,123 +1,248 @@
 DATABASE SCHEMA
-Name -> FraudDB
+DATABASE_NAME -> FraudDB
 
 TRANSACTIONS TABLE
-```MS
+
+```PostgreSQL
+DROP TABLE IF EXISTS transactions CASCADE;
 CREATE TABLE transactions (
 
-    transaction_id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    transaction_id BIGSERIAL PRIMARY KEY,
 
-    step INT NOT NULL,
+    step INTEGER NOT NULL,
 
     type VARCHAR(50) NOT NULL,
 
-    amount FLOAT NOT NULL,
+    amount DOUBLE PRECISION NOT NULL,
 
-    oldbalanceOrg FLOAT NOT NULL,
+    nameOrig VARCHAR(100) NOT NULL,
 
-    newbalanceOrig FLOAT NOT NULL,
+    oldbalanceOrg DOUBLE PRECISION NOT NULL,
 
-    oldbalanceDest FLOAT NOT NULL,
+    newbalanceOrig DOUBLE PRECISION NOT NULL,
 
-    newbalanceDest FLOAT NOT NULL,
+    nameDest VARCHAR(100) NOT NULL,
 
-    created_at DATETIME DEFAULT GETDATE()
+    oldbalanceDest DOUBLE PRECISION NOT NULL,
+
+    newbalanceDest DOUBLE PRECISION NOT NULL,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+);
+```
+FRAUD_PREDICTIONS TABLE
+```PostgreSQL
+DROP TABLE IF EXISTS fraud_predictions CASCADE;
+CREATE TABLE fraud_predictions (
+
+    prediction_id BIGSERIAL PRIMARY KEY,
+
+    transaction_id BIGINT NOT NULL,
+
+    fraud_probability DOUBLE PRECISION NOT NULL,
+
+    prediction BOOLEAN NOT NULL,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_prediction_transaction
+        FOREIGN KEY (transaction_id)
+        REFERENCES transactions(transaction_id)
+        ON DELETE CASCADE
 
 );
 ```
 
-FRAUD_PREDICTIONS TABLE
-```MS
-CREATE TABLE fraud_predictions (
+OFFICERS TABLE
 
-    prediction_id BIGINT IDENTITY(1,1) PRIMARY KEY,
+```PostgreSQL
+DROP TABLE IF EXISTS officers CASCADE;
+CREATE TABLE officers (
+    officer_id SERIAL PRIMARY KEY,
 
-    transaction_id BIGINT NOT NULL,
+    officer_name VARCHAR(100) NOT NULL UNIQUE,
 
-    fraud_probability FLOAT NOT NULL,
+    email VARCHAR(150) UNIQUE,
 
-    prediction BIT NOT NULL,
+    password_hash TEXT,
 
-    scored_at DATETIME DEFAULT GETDATE(),
+    role VARCHAR(30) DEFAULT 'REVIEWER',
 
-    CONSTRAINT FK_fraud_predictions_transaction
-    FOREIGN KEY (transaction_id)
-    REFERENCES transactions(transaction_id)
+    is_active BOOLEAN DEFAULT TRUE,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    last_login TIMESTAMP
+);
+```
+
+MODEL_REGISTRY TABLE
+```PostgreSQL
+DROP TABLE IF EXISTS model_registry CASCADE;
+CREATE TABLE model_registry (
+
+    model_id BIGSERIAL PRIMARY KEY,
+
+    model_name VARCHAR(100) NOT NULL,
+
+    model_version INTEGER NOT NULL UNIQUE,
+
+    model_path VARCHAR(500) NOT NULL,
+
+    dataset_size INTEGER,
+
+    model_description TEXT,
+
+    is_active BOOLEAN DEFAULT FALSE,
+
+    activation_status VARCHAR(30) DEFAULT 'PENDING',
+
+    activated_by BIGINT REFERENCES officers(officer_id),
+
+    activated_at TIMESTAMP,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+);
+```
+
+METRIC_REGISRTY TABLE
+```PostgreSQL
+DROP TABLE IF EXISTS metric_registry CASCADE;
+CREATE TABLE metric_registry (
+
+    metric_id BIGSERIAL PRIMARY KEY,
+
+    model_id BIGINT NOT NULL
+        REFERENCES model_registry(model_id)
+        ON DELETE CASCADE,
+
+    accuracy DOUBLE PRECISION,
+
+    precision_score DOUBLE PRECISION,
+
+    recall_score DOUBLE PRECISION,
+
+    f1_score DOUBLE PRECISION,
+
+    roc_auc DOUBLE PRECISION,
+
+    fraud_recall DOUBLE PRECISION,
+
+    nonfraud_recall DOUBLE PRECISION,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 
 );
 ```
 
 
 FRAUD_REVIEW_QUEUE TABLE
-```MS
+```PostgreSQL
+DROP TABLE IF EXISTS fraud_review_queue CASCADE;
 CREATE TABLE fraud_review_queue (
 
-    review_id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    review_id BIGSERIAL PRIMARY KEY,
 
     transaction_id BIGINT NOT NULL,
 
-    fraud_probabiblity FLOAT NOT NULL,
+    fraud_probability DOUBLE PRECISION NOT NULL,
 
-    status VARCHAR(30) NOT NULL DEFAULT 'PENDING',
+    status VARCHAR(20) DEFAULT 'PENDING',
 
-    reviewed_by VARCHAR(100) NULL,
+    reviewed_by BIGINT REFERENCES officers(officer_id),
 
-    reviewed_at DATETIME NULL,
+    reviewed_at TIMESTAMP,
 
-    final_label BIT NULL,
+    final_label BOOLEAN,
 
-    CONSTRAINT FK_review_queue_transaction
-    FOREIGN KEY (transaction_id)
-    REFERENCES transactions(transaction_id)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_review_transaction
+        FOREIGN KEY (transaction_id)
+        REFERENCES transactions(transaction_id)
+        ON DELETE CASCADE
 
 );
 ```
 
 
-TRAINING_FEEDBACK TABLE
 
-```MS
-CREATE TABLE training_feedback (
+INDEXES
 
-    feedback_id BIGINT IDENTITY(1,1) PRIMARY KEY,
+```PostgreSQL
+CREATE INDEX idx_transactions_created_at
+ON transactions(created_at);
+```
 
-    transaction_id BIGINT NOT NULL,
+```PostgreSQL
+CREATE INDEX idx_predictions_transaction
+ON fraud_predictions(transaction_id);
+```
 
-    final_label INT NOT NULL,
+```PostgreSQL
+CREATE INDEX idx_predictions_created_at
+ON fraud_predictions(created_at);
+```
 
-    reviewed_by VARCHAR(100),
+```PostgreSQL
+CREATE INDEX idx_review_status
+ON fraud_review_queue(status);
+```
 
-    reviewed_at DATETIME,
+```PostgreSQL
+CREATE INDEX idx_review_transaction
+ON fraud_review_queue(transaction_id);
+```
 
-    created_at DATETIME DEFAULT GETDATE()
+```PostgreSQL
+CREATE INDEX idx_model_active
+ON model_registry(is_active);
+```
 
+CONSTRAINTS
+-Helps to disallow incorrect or unfamiliar data to enter to our database
+
+FRAUD_REVIEW_QUEUE TABLE
+
+```PostgreSQL
+ALTER TABLE fraud_review_queue
+ADD CONSTRAINT chk_review_status
+CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED'));
+```
+
+FRAUD_PREDICTIONS TABLE
+
+```PostgreSQL
+ALTER TABLE fraud_predictions
+ADD CONSTRAINT chk_probability
+CHECK (
+    fraud_probability >= 0
+    AND fraud_probability <= 1
 );
 ```
 
 
-MODEL_REGISTRY TABLE
 
-```MS
-CREATE TABLE model_registry (
-    model_id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
-    model_name VARCHAR(100) NOT NULL,
-
-    model_version INT NOT NULL,
-
-    model_path VARCHAR(500) NOT NULL,
-
-    dataset_size BIGINT,
-
-    precision_score FLOAT,
-
-    recall_score FLOAT,
-
-    f1_score FLOAT,
-
-    roc_auc FLOAT,
-
-    is_active BIT DEFAULT 0,
-
-    created_at DATETIME DEFAULT GETDATE());
+```PostgreSQL
 ```
+
+```PostgreSQL
+```
+
+
+
+DATABASE COMMANDS TRICKS FOR POSTGRESQL
+
+SHOW TABLE
+`\dt`
+
+SHOW TABLE SCHEMA
+`\d transactions` or `\d fraud_predictions`
+
+KUTOKA TABLE
+
+`\q`
+
+

@@ -89,7 +89,25 @@ def reject_review(review_id: int, officer_name: str):
     finally:
         cursor.close()
         conn.close()
-
+def add_to_review_queue(transaction_id: int, fraud_probability: float):
+    
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            """INSERT INTO fraud_review_queue(
+                transaction_id,
+                fraud_probability)
+                
+                VALUES(%s, %s)""",
+                (transaction_id,fraud_probability)
+        )
+        
+        conn.commit()
+        
+    finally:
+        cursor.close()
+        conn.close()
     
 
 

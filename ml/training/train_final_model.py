@@ -7,6 +7,7 @@ from lightgbm import LGBMClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import train_test_split
 
+from ml.training.extract_training_data import load_training_data
 from ml.feature_engineering.preprocessing import (
     build_preprocessor
 )
@@ -37,6 +38,7 @@ def main():
     print("=" * 60)
 
     df = pd.read_parquet(DATA_PATH)
+    #df = load_training_data() in production
 
     print(f"Dataset shape: {df.shape}")
 

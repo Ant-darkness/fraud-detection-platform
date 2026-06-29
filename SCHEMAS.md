@@ -169,6 +169,7 @@ CREATE TABLE fraud_review_queue (
 
 
 
+
 INDEXES
 
 ```PostgreSQL
@@ -210,6 +211,11 @@ FRAUD_REVIEW_QUEUE TABLE
 ALTER TABLE fraud_review_queue
 ADD CONSTRAINT chk_review_status
 CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED'));
+```
+```PostgreSQL
+ALTER TABLE fraud_review_queue
+ADD CONSTRAINT uq_review_transaction
+UNIQUE(transaction_id);
 ```
 
 FRAUD_PREDICTIONS TABLE

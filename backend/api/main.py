@@ -7,6 +7,9 @@ from backend.api.routes.dashboard_routes import router as dashboard_router
 from backend.api.routes.model_routes import router as model_router
 from backend.api.routes.officer_routes import router as officer_router
 from backend.api.routes.auth_routes import router as auth_router
+from backend.api.routes.notification_routes import router as notification_router
+from backend.api.routes.transaction_routes import router as transaction_router
+
 
 
 
@@ -25,3 +28,7 @@ app.include_router(model_router)
 app.include_router(officer_router)
 
 app.include_router(auth_router)
+
+app.include_router(transaction_router)
+
+app.include_router(notification_router)

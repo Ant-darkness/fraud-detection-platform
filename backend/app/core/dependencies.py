@@ -5,7 +5,7 @@ from jose import jwt, JWTError
 from backend.app.core.security import SECRET_KEY, ALGORITHM
 from backend.app.services.officer_service import get_officer_by_id
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=True)
 
 
 def get_current_officer(

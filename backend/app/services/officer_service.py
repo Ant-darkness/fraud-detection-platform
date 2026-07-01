@@ -94,6 +94,7 @@ def create_officer(
     full_name: str,
     email: str,
     username: str,
+    password_hash: str,
     role: str
 
 ):

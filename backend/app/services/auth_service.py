@@ -51,10 +51,10 @@ def login(email: str, password: str):
     return {
         "access_token": token,
         "token_type": "bearer",
-        "must_change_password": officer["must_change_password"],
+        "must_change_password":officer["must_change_password"],
         "officer": {
-            "id": officer["officer_id"],
-            "name": officer["full_name"],
+            "officer_id": officer["officer_id"],
+            "full_name": officer["full_name"],
             "role": officer["role"]
         }
     }

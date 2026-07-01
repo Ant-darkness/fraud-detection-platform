@@ -2,34 +2,44 @@ from backend.app.database.connection import get_connection
 from ml.training.model_registry import get_next_version
 
 
-def main():
+def activate_model_by_version(version: int, officer_id: int = None):
 
     conn = get_connection()
-    cursor = conn.cursor()
+    cur = conn.cursor()
 
+    try:
+        # deactivate all
+        cur.execute("""
+            UPDATE model_registry
+            SET is_active = FALSE
+        """)
+
+        # activate selected
+        cur.execute("""
+            UPDATE model_registry
+            SET is_active = TRUE,
+                activation_status = 'ACTIVE',
+                activated_by = %s,
+                activated_at = NOW()
+            WHERE model_version = %s
+        """, (officer_id, version))
+
+        conn.commit()
+        print(f"Model v{version} activated safely")
+
+    except Exception as e:
+        conn.rollback()
+        raise e
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+def main():
     version = get_next_version() - 1
+    activate_model_by_version(version)
 
-    cursor.execute(
-        """
-        UPDATE model_registry
-        SET is_active=FALSE
-        """
-    )
 
-    cursor.execute(
-        """
-        UPDATE model_registry
-        SET is_active=TRUE
-        WHERE model_version=%s
-        
-        """,
-        (version,)
-    )
-
-    conn.commit()
-    cursor.close()
-    conn.close()
-
-    print(f"Model v{version} activated.....")
-
-main()
+if __name__ == "__main__":
+    main()

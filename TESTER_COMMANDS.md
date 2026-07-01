@@ -70,19 +70,19 @@ v2   TRUE```
 SUMMARY 
 ```
 Terminal 1
-docker compose up -d
+`docker compose up -d`
 
 Terminal 2
-uvicorn backend.api.main:app --reload
+`uvicorn backend.api.main:app --reload`
 
 Terminal 3
-python kafka_pipeline/consumer/sql_consumer.py
+`python kafka_pipeline/consumer/sql_consumer.py`
 
 Terminal 4
-python kafka_pipeline/consumer/realtime_scoring_consumer.py
+`python kafka_pipeline/consumer/realtime_scoring_consumer.py`
 
 Terminal 5
-python kafka_pipeline/producer/transaction_producer.py
+`python kafka_pipeline/producer/transaction_producer.py`
 ```
 
 

@@ -1,10 +1,9 @@
-# backend/api/routes/officer_routes.py
-
 from fastapi import APIRouter, Depends
 from backend.app.core.security import hash_password
-from backend.app.core.dependencies import (get_current_officer,admin_required)
+from backend.app.core.dependencies import (
+    get_current_officer, get_current_admin)
 from backend.app.services.officer_service import (
-    register_officer,
+    create_officer,
     list_officers,
     get_officer_by_id,
     enable_officer,
@@ -18,37 +17,38 @@ router = APIRouter(
 
 
 @router.post("/register")
-def register(full_name: str,
+def create_officer(full_name: str,
                 username: str,
                 email: str,
                 password: str,
                 role: str="OFFICER",
-                admin=Depends(admin_required)
+                   admin=Depends(get_current_admin)
                 ):
     password_hash = hash_password(password)
     
-    return register_officer(full_name=full_name,
+    return create_officer(full_name=full_name,
                         username=username,email=email,
                         password_hash=password_hash,
                         role=role)
 
 
 @router.get("/")
-def officers(admin=Depends(admin_required)):
+def officers(admin=Depends(get_current_admin)):
     return list_officers()
 
 
 @router.get("/{officer_id}")
-def officer(officer_id: int, admin=Depends(admin_required)):
+def officer(officer_id: int, admin=Depends(get_current_admin)):
     return get_officer_by_id(officer_id)
 
 
 
 @router.put("/{officer_id}/enable")
-def enable(officer_id: int, admin=Depends(admin_required)):
+def enable(officer_id: int, admin=Depends(get_current_admin)):
     return enable_officer(officer_id)
 
 
 @router.put("/{officer_id}/disable")
-def disable(officer_id: int, admin=Depends(admin_required)):
+def disable(officer_id: int, admin=Depends(get_current_admin)):
     return disable_officer(officer_id)
+

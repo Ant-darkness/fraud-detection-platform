@@ -4,6 +4,7 @@ import pandas as pd
 
 from ml.training.metrics import calculate_metrics
 
+
 DATA_PATH = Path("ml/data/training_feedback.parquet")
 
 
@@ -27,7 +28,19 @@ def main():
 
     print(metrics)
 
-    if metrics["f1"] < 0.80:
-        raise Exception("Model validation failed!")
+    # STRICT VALIDATION RULES
+    if (
+        metrics["f1"] < 0.80 or
+        metrics["recall"] < 0.70 or
+        metrics["precision"] < 0.70
+    ):
+        raise Exception(
+            f"Model rejected: {metrics}"
+        )
 
-    print("Validation passed........")
+    print("Model validation passed safely")
+    return metrics
+
+
+if __name__ == "__main__":
+    main()

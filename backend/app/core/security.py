@@ -12,6 +12,11 @@ pwd_context = CryptContext(
 )
 
 def hash_password(password: str):
+    print(password)
+    print(type(password))
+    print("length =", len(password))
+    print("bytes =", len(password.encode()))
+
     return pwd_context.hash(password)
 
 def verify_password(password: str, password_hash: str):
@@ -29,3 +34,5 @@ def create_access_token(data: dict):
         SECRET_KEY,
         algorithm=ALGORITHM
     )
+
+

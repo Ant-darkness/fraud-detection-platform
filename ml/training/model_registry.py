@@ -24,8 +24,8 @@ def register_model(
     model_name,
     version,
     model_path,
-    metrics,
-    dataset_size
+    dataset_size,
+    description=None
 ):
 
     conn = get_connection()
@@ -38,31 +38,27 @@ def register_model(
             model_name,
             model_version,
             model_path,
-
-            precision_score,
-            recall_score,
-            f1_score,
-            roc_auc,
-
             dataset_size,
-            is_active
+            model_description
 
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s)
+        RETURNING model_id
         """,
 
         (
             model_name,
             version,
             model_path,
-            metrics["precision"],
-            metrics["recall"],
-            metrics["f1"],
-            metrics["roc_auc"],
             dataset_size,
-            False
+            description
         )
     )
-
+    
+    model_id = cursor.fetchone()[0]
     conn.commit()
+    
+    cursor.close()
     conn.close()
+    
+    return model_id

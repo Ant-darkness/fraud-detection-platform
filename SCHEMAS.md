@@ -58,20 +58,28 @@ OFFICERS TABLE
 
 ```PostgreSQL
 DROP TABLE IF EXISTS officers CASCADE;
+
 CREATE TABLE officers (
+
     officer_id SERIAL PRIMARY KEY,
 
-    officer_name VARCHAR(100) NOT NULL UNIQUE,
+    full_name VARCHAR(100) NOT NULL,
+
+    username VARCHAR(50) UNIQUE NOT NULL,
 
     email VARCHAR(150) UNIQUE,
 
-    password_hash TEXT,
+    password_hash TEXT NOT NULL,
 
     role VARCHAR(30) DEFAULT 'REVIEWER',
 
     is_active BOOLEAN DEFAULT TRUE,
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    must_change_password BOOLEAN DEFAULT TRUE,
+
+    password_changed_at TIMESTAMP,
 
     last_login TIMESTAMP
 );
@@ -117,8 +125,6 @@ CREATE TABLE metric_registry (
     model_id BIGINT NOT NULL
         REFERENCES model_registry(model_id)
         ON DELETE CASCADE,
-
-    accuracy DOUBLE PRECISION,
 
     precision_score DOUBLE PRECISION,
 
@@ -167,6 +173,24 @@ CREATE TABLE fraud_review_queue (
 );
 ```
 
+TRAINING_RUNS TABLE
+```PostgreSQL
+CREATE TABLE training_runs (
+
+    run_id BIGSERIAL PRIMARY KEY,
+
+    model_version INTEGER,
+
+    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    finished_at TIMESTAMP,
+
+    status VARCHAR(20),
+
+    message TEXT
+
+);
+```
 
 
 

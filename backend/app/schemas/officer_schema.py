@@ -2,14 +2,14 @@ from pydantic import BaseModel, EmailStr
 
 
 class OfficerCreate(BaseModel):
-    officer_name: str
+    full_name: str
     email: EmailStr
     password: str
 
 
 class OfficerResponse(BaseModel):
     officer_id: int
-    officer_name: str
+    full_name: str
     email: EmailStr
     role: str
     is_active: bool

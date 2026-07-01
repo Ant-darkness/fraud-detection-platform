@@ -84,9 +84,9 @@ services:
     container_name: fraud-postgres
 
     environment:
-       POSTGRES_USER: postgres
-       POSTGRES_PASSWORD: Fraud@2026
-       POSTGRES_DB: FraudDB
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Fraud@2026
+      POSTGRES_DB: FraudDB
 
     ports:
       - "5433:5432"
@@ -98,7 +98,6 @@ services:
 
     networks:
       - fraud-network
-
 
   airflow-init:
     <<: *airflow-common
@@ -153,7 +152,7 @@ services:
       DB_PASSWORD: Fraud@2026
 
     depends_on:
-    - fraud-postgres
+      - fraud-postgres
 
     volumes:
       - ./:/app

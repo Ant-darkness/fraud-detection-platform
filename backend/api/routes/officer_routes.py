@@ -24,11 +24,11 @@ def create_officer(full_name: str,
                 role: str="OFFICER",
                    admin=Depends(get_current_admin)
                 ):
-    password_hash = hash_password(password)
+    password = hash_password(password)
     
     return create_officer(full_name=full_name,
                         username=username,email=email,
-                        password_hash=password_hash,
+                        password=password,
                         role=role)
 
 

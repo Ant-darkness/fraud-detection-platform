@@ -17,7 +17,7 @@ consumer = KafkaConsumer(
     "transactions",
     bootstrap_servers="localhost:9092",
     auto_offset_reset="latest",
-    group_id="fraud-scoring-group-v3",
+    group_id="fraud-scoring-group-v6",
     value_deserializer=lambda x: json.loads(x.decode("utf-8")),
     api_version=(3, 5, 0)
 )
@@ -42,7 +42,7 @@ while True:
             result = predictor.predict(features)
 
             probability = float(result["fraud_probability"])
-            prediction = int(result["prediction"])
+            prediction = bool(result["prediction"])
 
             # 1. Save prediction
             cursor.execute(
@@ -77,19 +77,20 @@ while True:
 
             conn.commit()
 
-            print(
-                f"TYPE={tx['type']} | "
-                f"AMOUNT={tx['amount']} | "
-                f"PROB={probability:.6f} | "
-                f"PRED={prediction}"
-            )
+            #print(
+            #    f"TYPE={tx['type']} | "
+            #    f"AMOUNT={tx['amount']} | "
+            #    f"PROB={probability:.6f} | "
+            #    f"PRED={prediction}"
+            #)
+            print(f"PRED={prediction}")
 
     except psycopg2.Error as e:
-        print("DB error:", e)
+        #print("DB error:", e)
         time.sleep(5)
         conn = get_connection()
         cursor = conn.cursor()
 
     except Exception as e:
-        print("Error:", e)
+        #print("Error:", e)
         time.sleep(5)

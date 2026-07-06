@@ -14,7 +14,7 @@ import logging
 # -----------------------------
 TOPIC = "transactions"
 THRESHOLD = 0.9
-GROUP_ID = "fraud-realtime-group-v1"
+GROUP_ID = "fraud-realtime-group-v2"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -48,7 +48,7 @@ consumer = KafkaConsumer(
     api_version=(3, 5, 0)
 )
 
-logging.info("🚀 Fraud Realtime Consumer started...")
+logging.info("Fraud Realtime Consumer started...")
 
 # -----------------------------
 # MAIN LOOP
@@ -57,19 +57,19 @@ while True:
     try:
         for message in consumer:
 
-            tx = message.value
+            feautre = message.value
 
             # -----------------------------
             # 1. FEATURE ENGINEERING
             # -----------------------------
             features = pd.DataFrame([{
-                "step": tx["step"],
-                "type": tx["type"],
-                "amount": tx["amount"],
-                "oldbalanceOrg": tx["oldbalanceOrg"],
-                "newbalanceOrig": tx["newbalanceOrig"],
-                "oldbalanceDest": tx["oldbalanceDest"],
-                "newbalanceDest": tx["newbalanceDest"]
+                "step": feautre["step"],
+                "type": feautre["type"],
+                "amount": feautre["amount"],
+                "oldbalanceOrg": feautre["oldbalanceOrg"],
+                "newbalanceOrig": feautre["newbalanceOrig"],
+                "oldbalanceDest": feautre["oldbalanceDest"],
+                "newbalanceDest": feautre["newbalanceDest"]
             }])
 
             # -----------------------------
@@ -80,7 +80,7 @@ while True:
             probability = float(result["fraud_probability"])
             prediction = bool(result["prediction"])
 
-            transaction_id = tx.get("transaction_id")
+            transaction_id = feautre.get("transaction_id")
 
             try:
                 # -----------------------------
@@ -110,15 +110,15 @@ while True:
                     """,
                     (
                         transaction_id,
-                        int(tx["step"]),
-                        str(tx["type"]),
-                        float(tx["amount"]),
-                        str(tx["nameOrig"]),
-                        float(tx["oldbalanceOrg"]),
-                        float(tx["newbalanceOrig"]),
-                        str(tx["nameDest"]),
-                        float(tx["oldbalanceDest"]),
-                        float(tx["newbalanceDest"])
+                        int(feautre["step"]),
+                        str(feautre["type"]),
+                        float(feautre["amount"]),
+                        str(feautre["nameOrig"]),
+                        float(feautre["oldbalanceOrg"]),
+                        float(feautre["newbalanceOrig"]),
+                        str(feautre["nameDest"]),
+                        float(feautre["oldbalanceDest"]),
+                        float(feautre["newbalanceDest"])
                     )
                 )
 
@@ -160,6 +160,24 @@ while True:
                             "PENDING"
                         )
                     )
+                    
+                else:
+                    cursor.execute(
+                        """
+                        INSERT INTO fraud_review_queue (
+                            transaction_id,
+                            fraud_probability,
+                            status
+                        )
+                        VALUES (%s, %s, %s)
+                        """,
+                        (
+                            transaction_id,
+                            probability,
+                            "PENDING"
+                        )
+                    )
+                    
 
                 # -----------------------------
                 # COMMIT ALL

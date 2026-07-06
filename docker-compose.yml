@@ -2,23 +2,23 @@ x-airflow-common: &airflow-common
   build:
     context: .
     dockerfile: Dockerfile.airflow
-
   environment:
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-postgres:5432/airflow
-
     AIRFLOW__CORE__LOAD_EXAMPLES: "False"
     AIRFLOW__LOGGING__LOGGING_LEVEL: INFO
 
-    # Security / auth
+    # Usalama na Auth (Muhimu kwa Airflow 3)
     AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: "Abely:admin"
     AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "True"
+    
+    # 🔥 SULUHISHO LA AIRFLOW 3: Lazima funguo ya JWT ifanane kote ili wasirushiane mawasiliano
+    AIRFLOW__API_AUTH__JWT_SECRET: "fraud_detection_platform_secret_jwt_key_2026"
 
-    # IMPORTANT for Airflow 3 execution API
-    AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://airflow-api-server:8080
+    # 🔥 PATH SAHIHI YA EXECUTION API KATIKA MATOLEO MAPYA
+    AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://airflow-api-server:8080/execution
 
     PYTHONPATH: /opt/airflow
-
     DB_HOST: fraud-postgres
     DB_PORT: 5432
     DB_NAME: FraudDB
@@ -30,13 +30,10 @@ x-airflow-common: &airflow-common
     - ./airflow_pipeline/logs:/opt/airflow/logs
     - ./airflow_pipeline/plugins:/opt/airflow/plugins
     - ./:/opt/airflow
-
   networks:
     - fraud-network
 
-
 services:
-
   # =========================
   # AIRFLOW DATABASE
   # =========================
@@ -53,7 +50,6 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - fraud-network
-
 
   # =========================
   # FRAUD DATABASE 
@@ -72,7 +68,6 @@ services:
     networks:
       - fraud-network
 
-
   # =========================
   # AIRFLOW INIT
   # =========================
@@ -90,7 +85,6 @@ services:
       --role Admin
       --email abely@local.com"
 
-
   # =========================
   # AIRFLOW API SERVER (UI + API)
   # =========================
@@ -104,7 +98,6 @@ services:
       - "8080:8080"
     restart: unless-stopped
 
-
   # =========================
   # AIRFLOW SCHEDULER
   # =========================
@@ -116,7 +109,6 @@ services:
       - airflow-api-server
     command: airflow scheduler
     restart: unless-stopped
-
 
   # =========================
   # AIRFLOW DAG PROCESSOR 
@@ -140,54 +132,27 @@ services:
     command: airflow triggerer
     restart: unless-stopped
 
-
   # =========================
-  # ZOOKEEPER
-  # =========================
-  #zookeeper:
-  #  image: confluentinc/cp-zookeeper:7.5.0
-  #  container_name: zookeeper
-  #  environment:
-  #    ZOOKEEPER_CLIENT_PORT: 2181
-  #    ZOOKEEPER_TICK_TIME: 2000
-  #  ports:
-  #    - "2181:2181"
-  #  networks:
-  #    - fraud-network
-
-
   # KAFKA
+  # =========================
   kafka:
     image: apache/kafka:latest
     container_name: kafka
-
     ports:
       - "9092:9092"
       - "9093:9093"
-
     environment:
-
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-
-      # 🔥 LISTENERS (FIXED)
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
-
-      # 🔥 IMPORTANT: REMOVE CUSTOM INTERNAL
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
-
-      # 🔥 REQUIRED MAPPING (THIS FIXES YOUR ERROR)
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
-
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-
     volumes:
       - kafka_data:/var/lib/kafka/data
-
     networks:
       - fraud-network
 
@@ -214,9 +179,25 @@ services:
     networks:
       - fraud-network
 
+  frontend-ui:
+    container_name: frontend-ui
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+
+    ports:
+      - "3000:80"
+
+    environment:
+      - VITE_API_URL=http://localhost:8000
+
+    restart: always 
+    networks:
+      - fraud-network
 
 networks:
   fraud-network:
+    driver: bridge
 
 volumes:
   postgres_data:

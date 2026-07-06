@@ -10,10 +10,11 @@ from backend.api.routes.auth_routes import router as auth_router
 from backend.api.routes.notification_routes import router as notification_router
 from backend.api.routes.transaction_routes import router as transaction_router
 
+from backend.app.core.lifespan import lifespan
 
 
-
-app = FastAPI(title="Fraud Detection API")
+app = FastAPI(title="Fraud Detection API",
+              lifespan=lifespan)
 
 app.include_router(health_router)
 

@@ -1,10 +1,26 @@
+from pathlib import Path
+import logging
+import time
+
 import pandas as pd
+
 from backend.app.database.connection import get_connection
 
 
-conn =get_connection()
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s"
+)
 
-query = """
+logger = logging.getLogger(__name__)
+
+
+OUTPUT_PATH = Path(
+    "ml/data/training_feedback.parquet"
+)
+
+
+QUERY = """
 SELECT
 
     t.step,
@@ -19,18 +35,103 @@ SELECT
 
 FROM transactions t
 
-INNER JOIN training_feedback f
+INNER JOIN fraud_review_queue f
 ON t.transaction_id = f.transaction_id
 """
+
+
 def main():
 
-    df = pd.read_sql(query, conn)
+    start_time = time.time()
 
-    print(df.shape)
+    conn = None
 
-    df.to_parquet(
-        "ml/data/training_feedback.parquet",
-        index=False
-    )
+    try:
 
-    print("Training dataset created.")
+        logger.info("=" * 60)
+        logger.info("STARTING DATA EXTRACTION")
+        logger.info("=" * 60)
+
+        logger.info("Connecting to PostgreSQL...")
+
+        conn = get_connection()
+
+        logger.info("Database connection established.")
+
+        logger.info("Executing SQL query...")
+
+        df = pd.read_sql(
+            QUERY,
+            conn
+        )
+
+        logger.info(
+            "Rows extracted: %s",
+            len(df)
+        )
+
+        logger.info(
+            "Columns: %s",
+            len(df.columns)
+        )
+
+        if df.empty:
+
+            raise Exception(
+                "Training dataset is empty."
+            )
+
+        OUTPUT_PATH.parent.mkdir(
+            parents=True,
+            exist_ok=True
+        )
+
+        logger.info(
+            "Saving dataset to %s",
+            OUTPUT_PATH
+        )
+
+        df.to_parquet(
+            OUTPUT_PATH,
+            index=False
+        )
+
+        elapsed = round(
+            time.time() - start_time,
+            2
+        )
+
+        logger.info(
+            "Dataset saved successfully."
+        )
+
+        logger.info(
+            "Execution time: %.2f seconds",
+            elapsed
+        )
+
+        logger.info("=" * 60)
+        logger.info("TRAINING DATA EXTRACTION COMPLETED")
+        logger.info("=" * 60)
+
+    except Exception:
+
+        logger.exception(
+            "Training data extraction failed."
+        )
+
+        raise
+
+    finally:
+
+        if conn is not None:
+
+            conn.close()
+
+            logger.info(
+                "Database connection closed."
+            )
+
+
+if __name__ == "__main__":
+    main()

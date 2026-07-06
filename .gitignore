@@ -4,3 +4,12 @@
 /monitoring
 /notebooks
 /producer_checkpoint.txt
+/.dockerignore
+/airflow.cfg
+/mlflow.db
+/simple_auth_manager_passwords.json.generated
+/mlruns
+/plugins
+/logs
+/dags
+/ml/models

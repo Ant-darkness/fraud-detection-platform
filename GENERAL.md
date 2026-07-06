@@ -76,3 +76,53 @@ activate model
         │
         ▼
 reload api
+
+Transaction
+
+        │
+
+        ▼
+
+transactions
+
+        │
+
+        ▼
+
+Prediction
+
+        │
+
+        ▼
+
+fraud_predictions
+
+        │
+
+        ▼
+
+Officer reviews
+
+        │
+
+        ▼
+
+fraud_review_queue
+
+        │
+
+        ▼
+
+Extract reviewed data
+
+        │
+
+        ▼
+
+fraud_training.parquet
+
+        │
+
+        ▼
+
+Train Model

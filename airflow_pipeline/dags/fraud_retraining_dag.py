@@ -1,103 +1,89 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from airflow import DAG
-from airflow.providers.standard.operators.python import PythonOperator, BranchPythonOperator
-from airflow.providers.standard.operators.empty import EmptyOperator
-
-from ml.training.validate_model import main as validate_model
-from ml.training.activate_model import main as activate_model
-from backend.app.services.reload_api import main as reload_api
-
-from backend.ml.extract_training_data import main as extract_training_data
-from ml.training.train_final_model import main as train_final_model
+from airflow.providers.standard.operators.bash import BashOperator
 
 
 default_args = {
     "owner": "BoT",
-    "retries": 1
+    "depends_on_past": False,
+    "retries": 2,
+    "retry_delay": timedelta(minutes=5),
 }
 
+tags=[
+        "fraud",
+        "ml",
+        "production"
+    ]
 
-# ----------------------------
-# Branch logic
-# ----------------------------
-def validate_and_decide():
-    is_valid = validate_model()
-
-    if is_valid:
-        return "activate_model"
-    return "skip_activation"
-
-
-# ----------------------------
-# DAG DEFINITION
-# ----------------------------
 with DAG(
     dag_id="fraud_retraining_pipeline",
+    description="Production Fraud Model Retraining Pipeline",
     start_date=datetime(2026, 1, 1),
     schedule="@daily",
     catchup=False,
     default_args=default_args,
-    tags=["fraud", "ml"],
+    max_active_runs=1,
+    max_consecutive_failed_dag_runs=3,
+    tags=tags,
     is_paused_upon_creation=False
 ) as dag:
 
-    # ----------------------------
-    # STEP 1: DATA EXTRACTION
-    # ----------------------------
-    extract_task = PythonOperator(
+    extract_training_data = BashOperator(
+
         task_id="extract_reviewed_data",
-        python_callable=extract_training_data
+        cwd="/opt/airflow",
+        bash_command="""python backend/ml/extract_training_data.py""",
+        execution_timeout=timedelta(minutes=30)
     )
 
-    # ----------------------------
-    # STEP 2: TRAIN MODEL
-    # ----------------------------
-    train_task = PythonOperator(
+
+    train_model = BashOperator(
+
         task_id="train_new_model",
-        python_callable=train_final_model
+        cwd="/opt/airflow",
+        bash_command=""" python ml/training/train_final_model.py""",
+        execution_timeout=timedelta(hours=2)
+
     )
 
-    # ----------------------------
-    # STEP 3: VALIDATE MODEL
-    # ----------------------------
-    validate_task = PythonOperator(
+
+    validate_model = BashOperator(
+
         task_id="validate_model",
-        python_callable=validate_model
+        cwd="/opt/airflow",
+        bash_command="""python ml/training/validate_model.py""",
+        execution_timeout=timedelta(minutes=30)
     )
 
-    # ----------------------------
-    # STEP 4: BRANCH DECISION
-    # ----------------------------
-    branch_task = BranchPythonOperator(
-        task_id="decide_activation",
-        python_callable=validate_and_decide
-    )
 
-    # ----------------------------
-    # STEP 5A: ACTIVATE MODEL
-    # ----------------------------
-    activate_task = PythonOperator(
+    activate_model = BashOperator(
+
         task_id="activate_model",
-        python_callable=activate_model
+        cwd="/opt/airflow",
+        bash_command="""python ml/training/activate_model.py""",
+        execution_timeout=timedelta(minutes=10)
     )
 
-    # ----------------------------
-    # STEP 5B: SKIP PATH
-    # ----------------------------
-    skip_task = EmptyOperator(
-        task_id="skip_activation"
-    )
 
-    # ----------------------------
-    # STEP 6: RELOAD API
-    # ----------------------------
-    reload_task = PythonOperator(
+    reload_api = BashOperator(
+
         task_id="reload_api_model",
-        python_callable=reload_api
+        cwd="/opt/airflow",
+        bash_command="""python backend/app/services/reload_api.py      """,
+        execution_timeout=timedelta(minutes=5)
     )
 
-    extract_task >> train_task >> validate_task >> branch_task
 
-    branch_task >> activate_task >> reload_task
-    branch_task >> skip_task
+    (
+        extract_training_data
+        >>
+        train_model
+        >>
+        validate_model
+        >>
+        activate_model
+        >>
+        reload_api
+    )

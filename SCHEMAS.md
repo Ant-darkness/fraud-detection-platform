@@ -75,13 +75,19 @@ CREATE TABLE officers (
 
     is_active BOOLEAN DEFAULT TRUE,
 
+    create_by INT,
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     must_change_password BOOLEAN DEFAULT TRUE,
 
     password_changed_at TIMESTAMP,
 
-    last_login TIMESTAMP
+    last_login TIMESTAMP,
+
+    CONSTRAINT fk_created_by
+    FOREIGN KEY(created_by)
+    REFENCES officer(officer_id)
 );
 ```
 

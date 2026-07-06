@@ -17,10 +17,9 @@ router = APIRouter(
 
 
 @router.post("/register")
-def create_officer(full_name: str,
+def register_officer(full_name: str,
                 username: str,
                 email: str,
-                password: str,
                 role: str="OFFICER",
                    admin=Depends(get_current_admin)
                 ):
@@ -28,8 +27,8 @@ def create_officer(full_name: str,
     
     return create_officer(full_name=full_name,
                         username=username,email=email,
-                        password=password,
-                        role=role)
+                        role=role,
+                        created_by=admin["officer_id"])
 
 
 @router.get("/")

@@ -13,3 +13,4 @@
 /logs
 /dags
 /ml/models
+/airflow_pipelene/logs

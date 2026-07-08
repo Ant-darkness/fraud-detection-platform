@@ -12,7 +12,7 @@ from backend.app.database.connection import get_connection
 # -----------------------------
 TOPIC = "transactions"
 THRESHOLD = 0.9  # BoT Risk Appetite Threshold
-GROUP_ID = "fraud-realtime-group-v2"
+GROUP_ID = "fraud-realtime-group-v3"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -35,13 +35,13 @@ consumer = KafkaConsumer(
     TOPIC,
     bootstrap_servers="localhost:9092",
     auto_offset_reset="latest",
-    enable_auto_commit=True,
+    enable_auto_commit=False,
     group_id=GROUP_ID,
     value_deserializer=lambda x: json.loads(x.decode("utf-8")),
     api_version=(3, 5, 0)
 )
 
-logging.info("🚀 BoT Compliant Fraud Realtime Consumer started...")
+logging.info("BoT Compliant Fraud Realtime Consumer started...")
 
 # -----------------------------
 # MAIN LOOP
@@ -122,15 +122,15 @@ while True:
                         (transaction_id, probability)
                     )
                     logging.info(
-                        f"⚠️ TX={transaction_id} | RISK={probability:.4f} | STATUS=HELD -> Sent to Officer Queue.")
+                        f"TX={transaction_id} | RISK={probability:.4f} | STATUS=HELD -> Sent to Officer Queue.")
                 else:
                     logging.info(
-                        f"✅ TX={transaction_id} | RISK={probability:.4f} | STATUS=APPROVED -> Processed Immediately.")
+                        f"TX={transaction_id} | RISK={probability:.4f} | STATUS=APPROVED -> Processed Immediately.")
 
                 conn.commit()
 
             except psycopg2.Error as db_err:
-                logging.error(f"❌ Database Error: {db_err}")
+                logging.error(f"Database Error: {db_err}")
                 try:
                     conn.rollback()
                 except:
@@ -140,14 +140,14 @@ while True:
                 conn, cursor = get_db()
 
             except Exception as e:
-                logging.error(f"❌ Processing Error: {e}")
+                logging.error(f"Processing Error: {e}")
                 try:
                     conn.rollback()
                 except:
                     pass
 
     except Exception as kafka_err:
-        logging.error(f"🚨 Kafka Error: {kafka_err}")
+        logging.error(f"Kafka Error: {kafka_err}")
         time.sleep(5)
         try:
             consumer.close()

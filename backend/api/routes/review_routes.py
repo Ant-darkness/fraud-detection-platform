@@ -26,7 +26,7 @@ def approve(
 
     return approve_review(
         review_id,
-        officer["full_name"]
+        officer["officer_id"]
     )
 
 

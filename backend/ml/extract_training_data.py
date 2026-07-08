@@ -31,11 +31,11 @@ SELECT
     t.oldbalanceDest,
     t.newbalanceDest,
 
-    f.final_label AS isFraud
+    f.prediction AS isFraud
 
 FROM transactions t
 
-INNER JOIN fraud_review_queue f
+INNER JOIN fraud_predictions f 
 ON t.transaction_id = f.transaction_id
 """
 

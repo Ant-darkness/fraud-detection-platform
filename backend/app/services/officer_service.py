@@ -67,6 +67,7 @@ def create_officer(
     full_name: str,
     email: str,
     username: str,
+    password: str,
     role: str,
     created_by: int
 ):
@@ -89,8 +90,8 @@ def create_officer(
         if cursor.fetchone():
             raise Exception("Email or Username already exists.")
 
-        temporary_password = generate_temporary_password()
-        password_hash = hash_password(temporary_password)
+        #temporary_password = generate_temporary_password()
+        #password_hash = hash_password(temporary_password)
 
         cursor.execute(
             """
@@ -111,7 +112,7 @@ def create_officer(
                 full_name,
                 email,
                 username,
-                password_hash,
+                password,
                 role,
                 created_by
             )
@@ -124,7 +125,7 @@ def create_officer(
             "officer_id": officer_id,
             "email": email,
             "username": username,
-            "temporary_password": temporary_password
+            "temporary_password": password
         }
     except:
         conn.rollback()

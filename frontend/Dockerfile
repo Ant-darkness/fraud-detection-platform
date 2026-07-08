@@ -6,14 +6,16 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 
+# TAMKO MUHIMU: Tunapokea URL wakati wa build na kuiweka kwenye Environment ya Vite
+ARG VITE_API_BASE_URL
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+
 # Copy codes zote na kujenga static files (dist)
 COPY . .
 RUN npm run build
 
 # Stage 2: Serve the production assets using Nginx
 FROM nginx:1.25-alpine
-# Copy custom nginx configuration (kama ipo, au tumia default kwa single page apps)
-COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Copy file la config kuzuia React Router "404 Not Found" kwenye refresh
 RUN echo 'server { \
@@ -24,6 +26,9 @@ RUN echo 'server { \
     try_files $uri $uri/ /index.html; \
     } \
     }' > /etc/nginx/conf.d/default.conf
+
+# Copy static assets kutoka stage ya kwanza kwenda Nginx
+COPY --from=builder /app/dist /usr/share/nginx/html
 
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]

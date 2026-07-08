@@ -11,7 +11,7 @@ x-airflow-common: &airflow-common
     # Usalama na Auth (Muhimu kwa Airflow 3)
     AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: "Abely:admin"
     AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "True"
-    
+
     # 🔥 SULUHISHO LA AIRFLOW 3: Lazima funguo ya JWT ifanane kote ili wasirushiane mawasiliano
     AIRFLOW__API_AUTH__JWT_SECRET: "fraud_detection_platform_secret_jwt_key_2026"
 
@@ -77,13 +77,7 @@ services:
     depends_on:
       - airflow-postgres
     command: >
-      bash -c "airflow db migrate && airflow users create
-      --username Abely
-      --password admin
-      --firstname Abely
-      --lastname User
-      --role Admin
-      --email abely@local.com"
+      bash -c "airflow db migrate && airflow users create --username Abely --password admin --firstname Abely --lastname User --role Admin --email abely@local.com"
 
   # =========================
   # AIRFLOW API SERVER (UI + API)
@@ -184,16 +178,29 @@ services:
     build: 
       context: ./frontend
       dockerfile: Dockerfile
-
+      args:
+        - VITE_API_BASE_URL=http://localhost:8000
     ports:
       - "3000:80"
-
-    environment:
-      - VITE_API_URL=http://localhost:8000
-
     restart: always 
     networks:
       - fraud-network
+
+
+  ml-training:
+    build:
+      context: .
+      dockerfile: Dockerfile.training
+    container_name: ml-training
+    volumes:
+      - .:/app
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    restart: "no"
+
+    networks:
+      - fraud-network
+
 
 networks:
   fraud-network:

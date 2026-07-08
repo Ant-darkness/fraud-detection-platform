@@ -23,8 +23,8 @@ def models(officer=Depends(get_current_officer)):
 
 
 @router.get("/active")
-def active_model():
-    return get_active_model(officer=Depends(get_current_officer))
+def active_model(officer=Depends(get_current_officer)):
+    return get_active_model()
 
 @router.post("/reload")
 def reload_model(admin=Depends(get_current_admin)):
@@ -55,12 +55,3 @@ def delete(
 
 ):
     return delete_model(model_id)
-
-
-@router.put("/models/{model_id}/activate")
-def officer_activate(model_id: int, officer=Depends(get_current_admin)):
-
-    return promote_model(
-        model_id=model_id,
-        officer_id=officer["id"]
-    )

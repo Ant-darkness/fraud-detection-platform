@@ -9,7 +9,7 @@ load_dotenv()
 def main():
 
     officer_id = create_initial_admin(
-        full_name="System Administrator",
+        full_name="System Administrator2",
         username=os.getenv("ADMIN_USERNAME"),
         email=os.getenv("ADMIN_EMAIL"),
         password=os.getenv("ADMIN_PASSWORD")

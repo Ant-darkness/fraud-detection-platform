@@ -1,147 +1,180 @@
 from backend.app.database.connection import get_connection
 
-
-conn = get_connection()
-cursor = conn.cursor()
-
 def dashboard_summary():
+    conn = get_connection()
+    
+    try:
+        cursor = conn.cursor()
 
-    cursor.execute("""
-        SELECT COUNT(*)
-        FROM transactions
-    """)
-    total_transactions = cursor.fetchone()[0]
+        cursor.execute("""
+            SELECT COUNT(*)
+            FROM transactions
+        """)
+        total_transactions = cursor.fetchone()[0]
 
-    cursor.execute("""
-        SELECT COUNT(*)
-        FROM fraud_predictions
-        WHERE prediction = TRUE
-    """)
-    predicted_frauds = cursor.fetchone()[0]
+        cursor.execute("""
+            SELECT COUNT(*)
+            FROM fraud_predictions
+            WHERE prediction = TRUE
+        """)
+        predicted_frauds = cursor.fetchone()[0]
 
-    cursor.execute("""
-        SELECT COUNT(*)
-        FROM fraud_review_queue
-        WHERE status='PENDING'
-    """)
-    pending_reviews = cursor.fetchone()[0]
+        cursor.execute("""
+            SELECT COUNT(*)
+            FROM fraud_review_queue
+            WHERE status='PENDING'
+        """)
+        pending_reviews = cursor.fetchone()[0]
 
-    cursor.execute("""
-        SELECT COUNT(*)
-        FROM fraud_review_queue
-        WHERE final_label=TRUE
-    """)
-    confirmed_frauds = cursor.fetchone()[0]
+        cursor.execute("""
+            SELECT COUNT(*)
+            FROM fraud_review_queue
+            WHERE final_label=TRUE
+        """)
+        confirmed_frauds = cursor.fetchone()[0]
 
-    fraud_rate = 0
+        fraud_rate = 0
 
-    if total_transactions > 0:
-        fraud_rate = (
-            confirmed_frauds /
-            total_transactions
-        ) * 100
+        if total_transactions > 0:
+            fraud_rate = (
+                confirmed_frauds /
+                total_transactions
+            ) * 100
 
-    return {
-        "total_transactions": total_transactions,
-        "predicted_frauds": predicted_frauds,
-        "pending_reviews": pending_reviews,
-        "confirmed_frauds": confirmed_frauds,
-        "fraud_rate": round(fraud_rate, 4)
-    }
+        return {
+            "total_transactions": total_transactions,
+            "predicted_frauds": predicted_frauds,
+            "pending_reviews": pending_reviews,
+            "confirmed_frauds": confirmed_frauds,
+            "fraud_rate": round(fraud_rate, 4)
+        }
+        
+    finally:
+        cursor.close()
+        conn.close()
 
 
 def recent_predictions():
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
 
-    cursor.execute("""
-        SELECT 
-            prediction_id,
-            transaction_id,
-            fraud_probability,
-            prediction,
-            created_at
-        FROM fraud_predictions
-        ORDER BY created_at DESC
-        LIMIT 100
-    """)
+        cursor.execute("""
+            SELECT 
+                prediction_id,
+                transaction_id,
+                fraud_probability,
+                prediction,
+                created_at
+            FROM fraud_predictions
+            ORDER BY created_at DESC
+            LIMIT 100
+        """)
 
-    rows = cursor.fetchall()
+        rows = cursor.fetchall()
 
-    return [
-        {
-            "prediction_id": r.prediction_id,
-            "transaction_id": r.transaction_id,
-            "probability": float(r.fraud_probability),
-            "prediction": r.prediction,
-            "created_at": str(r.created_at)
-        }
-        for r in rows
-    ]
+        return [
+            {
+                "prediction_id": r.prediction_id,
+                "transaction_id": r.transaction_id,
+                "probability": float(r.fraud_probability),
+                "prediction": r.prediction,
+                "created_at": str(r.created_at)
+            }
+            for r in rows]
+        
+    finally:
+        cursor.close()
+        conn.close()
 
 def pending_reviews():
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()           
+        cursor.execute("""
+            SELECT
+                review_id,
+                transaction_id,
+                fraud_probability,
+                status
+            FROM fraud_review_queue
+            WHERE status='PENDING'
+            ORDER BY fraud_probability DESC
+        """)
 
-    cursor.execute("""
-        SELECT
-            review_id,
-            transaction_id,
-            fraud_probability,
-            status
-        FROM fraud_review_queue
-        WHERE status='PENDING'
-        ORDER BY fraud_probability DESC
-    """)
+        rows = cursor.fetchall()
 
-    rows = cursor.fetchall()
-
-    return [
-        {
-            "review_id": r.review_id,
-            "transaction_id": r.transaction_id,
-            "fraud_probability": float(r.fraud_probability),
-            "status": r.status
-        }
-        for r in rows
-    ]
+        return [
+            {
+                "review_id": r.review_id,
+                "transaction_id": r.transaction_id,
+                "fraud_probability": float(r.fraud_probability),
+                "status": r.status
+            }
+            for r in rows]
+    finally:
+        cursor.close()
+        conn.close()
+        
+        
+        
 def fraud_trend():
+    conn = get_connection()
+    
+    try:
+        cursor = conn.cursor()
 
-    cursor.execute("""
-       SELECT
-    reviewed_at::DATE AS day,
-    COUNT(*) AS frauds
-    FROM fraud_review_queue
-    WHERE final_label = TRUE
-    GROUP BY reviewed_at::DATE
-    ORDER BY day;
-    """)
+        cursor.execute("""
+        SELECT
+        reviewed_at::DATE AS day,
+        COUNT(*) AS frauds
+        FROM fraud_review_queue
+        WHERE final_label = TRUE
+        GROUP BY reviewed_at::DATE
+        ORDER BY day;
+        """)
 
-    rows = cursor.fetchall()
+        rows = cursor.fetchall()
 
-    return [
-        {
-            "date": str(r.day),
-            "frauds": r.frauds
-        }
-        for r in rows
-    ]
+        return [
+            {
+                "date": str(r.day),
+                "frauds": r.frauds
+            }
+            for r in rows
+        ]
+        
+    finally:
+        cursor.close()
+        conn.close()
 
 
 def officer_stats():
+    conn = get_connection()
+    
+    try:
+        
+        cursor = conn.cursor()
 
-    cursor.execute("""
-        SELECT
-            reviewed_by,
-            COUNT(*) reviews
-        FROM fraud_review_queue
-        WHERE reviewed_by IS NOT NULL
-        GROUP BY reviewed_by
-        ORDER BY reviews DESC
-    """)
+        cursor.execute("""
+            SELECT
+                reviewed_by,
+                COUNT(*) reviews
+            FROM fraud_review_queue
+            WHERE reviewed_by IS NOT NULL
+            GROUP BY reviewed_by
+            ORDER BY reviews DESC
+        """)
 
-    rows = cursor.fetchall()
+        rows = cursor.fetchall()
 
-    return [
-        {
-            "officer": r.reviewed_by,
-            "reviews": r.reviews
-        }
-        for r in rows
-    ]
+        return [
+            {
+                "officer": r.reviewed_by,
+                "reviews": r.reviews
+            }
+            for r in rows
+        ]
+    finally:
+        cursor.close()
+        conn.close()

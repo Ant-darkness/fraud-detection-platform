@@ -1,42 +1,36 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
-import ProtectedRoute from './components/ProtectedRoute';
-import Layout from './components/Layout';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import TransactionReview from './pages/TransactionReview';
-import ModelManagement from './pages/ModelManagement';
-import OfficerManagement from './pages/OfficerManagement';
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import Login from "./pages/Login";
+import ChangePassword from "./pages/ChangePassword";
+import Dashboard from "./pages/Dashboard";
+import Transactions from "./pages/Transactions";
+import Models from "./pages/Models";
+import Metrics from "./pages/Metrics";
+import AuthLayout from "./layouts/AuthLayout";
+import MainLayout from "./layouts/MainLayout"; // Kama unayo sidebar kuu
 
-const App = () => {
+export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          {/* Public Access Layer */}
-          <Route path="/login" element={<Login />} />
+    <BrowserRouter>
+      <Routes>
+        {/* Njia za Wazi (Public Routes) */}
+        <Route path="/" element={<Login />} />
 
-          {/* Core Protected Architecture Layer */}
-          <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'OFFICER']} />}>
-            <Route element={<Layout />}>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/review" element={<TransactionReview />} />
-              <Route path="/models" element={<ModelManagement />} />
-              
-              {/* Restricted Administrative Segment */}
-              <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
-                <Route path="/officers" element={<OfficerManagement />} />
-              </Route>
-            </Route>
+        {/* Njia Zinazohitaji Token (Protected Routes) */}
+        <Route element={<AuthLayout />}>
+          <Route path="/change-password" element={<ChangePassword />} />
+          
+          {/* Njia za Dashboard na Ukaguzi zikiwa ndani ya Layout ya Maafisa */}
+          <Route element={<MainLayout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/transactions" element={<Transactions />} />
+            <Route path="/models" element={<Models />} />
+            <Route path="/metrics" element={<Metrics />} />
           </Route>
+        </Route>
 
-          {/* Catch-all Routing Strategy */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+        {/* Ukirudi hewani vibaya, rudishwa Login */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   );
-};
-
-export default App;
+}

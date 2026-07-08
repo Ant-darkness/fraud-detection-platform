@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api.routes.health_routes import router as health_router
 from backend.api.routes.prediction_routes import router as prediction_router
@@ -15,6 +16,18 @@ from backend.app.core.lifespan import lifespan
 
 app = FastAPI(title="Fraud Detection API",
               lifespan=lifespan)
+
+origins = [
+    "http://localhost:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,      # Ruhusu frontend hii
+    allow_credentials=True,
+    allow_methods=["*"],         # GET, POST, PUT, DELETE, OPTIONS n.k.
+    allow_headers=["*"],         # Ruhusu headers zote
+)
 
 app.include_router(health_router)
 

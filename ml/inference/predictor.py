@@ -53,7 +53,7 @@ class FraudPredictor:
 
         prob = self.model.predict_proba(features)[:, 1][0]
 
-        prediction = int(prob >= 0.5)
+        prediction = int(prob >= 0.9)
         label = "Fraud" if prediction else "Not Fraud"
 
         return {

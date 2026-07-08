@@ -17,5 +17,5 @@ def transactions():
 
 
 @router.get("/{transaction_id}")
-def transaction(transaction_id: int):
+def transaction(transaction_id: str):
     return get_transaction(transaction_id)

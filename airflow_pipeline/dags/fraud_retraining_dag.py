@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 
 from airflow import DAG
-from airflow.providers.standard.operators.bash import BashOperator
+from airflow.providers.standard.operators.bash import BashOperator, DockerOperator
 
 
 default_args = {
@@ -39,13 +39,26 @@ with DAG(
     )
 
 
-    train_model = BashOperator(
+    #train_model = BashOperator(
 
-        task_id="train_new_model",
-        cwd="/opt/airflow",
-        bash_command=""" python ml/training/train_final_model.py""",
-        execution_timeout=timedelta(hours=2)
+    #    task_id="train_new_model",
+    #    cwd="/opt/airflow",
+    #    bash_command=""" python ml/training/train_final_model.py""",
+    #    execution_timeout=timedelta(hours=2)
 
+    #)
+    #train_model = BashOperator(
+    #    task_id="train_model",
+    #    bash_command="docker start -a ml-training"
+    #    bash_command="docker compose run --rm ml-training"
+    #)
+    
+    train_model = DockerOperator(
+        task_id="train_model",
+        image="fraud-training:latest",
+        command="python ml/training/train_final_model.py",
+        auto_remove=True,
+        network_mode="fraud-platform_default"
     )
 
 
@@ -71,7 +84,7 @@ with DAG(
 
         task_id="reload_api_model",
         cwd="/opt/airflow",
-        bash_command="""python backend/app/services/reload_api.py      """,
+        bash_command="""python backend/app/services/reload_api.py""",
         execution_timeout=timedelta(minutes=5)
     )
 

@@ -14,6 +14,7 @@ RUN pip install --no-cache-dir \
     psycopg2-binary \
     apache-airflow-providers-postgres \
     apache-airflow-providers-apache-kafka \
+    apache-airflow-providers-docker \
     pandas \
     sqlalchemy \
     scikit-learn \

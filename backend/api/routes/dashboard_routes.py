@@ -1,4 +1,5 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
+from typing import Optional
 
 from backend.app.services.dashboard_service import *
 
@@ -12,6 +13,18 @@ router = APIRouter(
 def summary():
 
     return dashboard_summary()
+
+
+@router.get("/analytics")
+def analytics(timeframe: str=Query("7days", regex="^(24hrs|7days|4weeks|1year)$"), start_date: Optional[str]=None, end_date: Optional[str] = None):
+    
+    return get_advanced_analytics(timeframe, start_date,end_date)
+
+
+@router.get("/volume-comparison")
+def comparison():
+    
+    return get_volume_comparison()
 
 
 @router.get("/recent-predictions")

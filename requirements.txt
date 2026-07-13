@@ -17,14 +17,16 @@ kafka-python
 python-dotenv
 
 pydantic
+pyarrow
+
+psycopg2-binary
 
 alembic
 
-prometheus-client
+prometheus_client
 
-mlflow
 
-great-expectations
+great_expectations
 
 requests
 

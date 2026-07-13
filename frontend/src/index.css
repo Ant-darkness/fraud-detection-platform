@@ -1,45 +1,31 @@
 @import "tailwindcss";
 
-:root {
-    --bot-navy: #0F2942;
-    --bot-navy-light: #163B5F;
-    --bot-gold: #C5A059;
-    --bot-gold-dark: #A4813D;
-    --bot-bg: #F4F6F9;
-    --bot-surface: #FFFFFF;
-    --bot-border: #E2E8F0;
-    --bot-success: #10B981;
-    --bot-danger: #EF4444;
-    --bot-warning: #F59E0B;
+@theme {
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-* {
+body {
     margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-html,
-body,
-#root {
-    width: 100%;
-    min-height: 100%;
-    background-color: var(--bot-bg);
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: #0a0a0a;
+    color: #f5f5f5;
     -webkit-font-smoothing: antialiased;
 }
 
-/* Custom Smooth Scrollbar as per BoT Dashboard standards */
+/* Custom Scrollbar Optimization for Banking Operations */
 ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
 }
 
-::-webkit-scrollbar-thumb {
-    background: var(--bot-gold);
-    border-radius: 4px;
+::-webkit-scrollbar-track {
+    background: #0a0a0a;
 }
 
-::-webkit-scrollbar-track {
-    background: var(--bot-navy);
+::-webkit-scrollbar-thumb {
+    background: #262626;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #d4af37;
 }

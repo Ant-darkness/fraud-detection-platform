@@ -44,7 +44,7 @@ def get_best_existing_model_metrics():
     }
 
 
-def main():
+def main(DATA_PATH=DATA_PATH):
 
     run_id = None
 

@@ -4,6 +4,7 @@ x-airflow-common: &airflow-common
     dockerfile: Dockerfile.airflow
   environment:
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    HOST_PROJECT_PATH: C:/Users/Abely/Desktop/fraud-detection-platform
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-postgres:5432/airflow
     AIRFLOW__CORE__LOAD_EXAMPLES: "False"
     AIRFLOW__LOGGING__LOGGING_LEVEL: INFO
@@ -30,6 +31,7 @@ x-airflow-common: &airflow-common
     - ./airflow_pipeline/logs:/opt/airflow/logs
     - ./airflow_pipeline/plugins:/opt/airflow/plugins
     - ./:/opt/airflow
+    - /var/run/docker.sock:/var/run/docker.sock
   networks:
     - fraud-network
 
@@ -175,17 +177,16 @@ services:
 
   frontend-ui:
     container_name: frontend-ui
-    build: 
+    build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
         - VITE_API_BASE_URL=http://localhost:8000
     ports:
       - "3000:80"
-    restart: always 
+    restart: always
     networks:
       - fraud-network
-
 
   ml-training:
     build:
@@ -200,7 +201,6 @@ services:
 
     networks:
       - fraud-network
-
 
 networks:
   fraud-network:

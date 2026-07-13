@@ -97,6 +97,26 @@ TO VERIFY IF FILE IS PRESENT ON CONTAINER
 `docker exec -it fraud-api ls -R /app/ml/models`
 
 
+CLEAR FAILED TASK
+`docker exec airflow-scheduler airflow tasks clear fraud_retraining_pipeline train_model --start-date 2026-07-12`
+
+
+UNPAUSE DAG
+`docker exec airflow-scheduler airflow dags unpause fraud_retraining_pipeline`
+
+
+VERY SENSITIVE
+# Development
+`docker-compose up -d`
+
+# Production (baada ya kubadilisha .env au kutumia .env.prod)
+`cp .env.prod .env`
+`docker-compose up -d`
+
+
+
+
+
 
 
 

@@ -60,4 +60,3 @@ def login(email: str, password: str):
     }
     
 
-#login("admin@bot.go.tz", "reVr%5e07aD5")

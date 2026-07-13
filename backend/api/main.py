@@ -10,6 +10,7 @@ from backend.api.routes.officer_routes import router as officer_router
 from backend.api.routes.auth_routes import router as auth_router
 from backend.api.routes.notification_routes import router as notification_router
 from backend.api.routes.transaction_routes import router as transaction_router
+from backend.api.routes.metric_routes import router as metric_router
 
 from backend.app.core.lifespan import lifespan
 
@@ -38,6 +39,8 @@ app.include_router(review_router)
 app.include_router(dashboard_router)
 
 app.include_router(model_router)
+
+app.include_router(metric_router)
 
 app.include_router(officer_router)
 

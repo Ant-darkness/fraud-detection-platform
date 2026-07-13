@@ -83,7 +83,14 @@ Terminal 4
 
 Terminal 5
 `python kafka_pipeline/producer/transaction_producer.py`
-```
+
+
+FOR DEPLOYMENT
+`environment:  HOST_PROJECT_PATH=/var/www/fraud-detection-platform`
+
+# Hata ukiacha hivi, Python itaona ile variable ya server ya "/var/www/..." 
+# na itapuuza hii ya Windows kwa sababu 'os.getenv' inapata jibu!
+PROJECT_ROOT_PATH = os.getenv("HOST_PROJECT_PATH", "C:/Users/Abely/Desktop/fraud-detection-platform")
 
 
 

@@ -34,9 +34,9 @@ with DAG(
     is_paused_upon_creation=False
 ) as dag:
 
-    # =========================================================================
-    # TASK 1: Kutoa Data kwenye Postgres
-    # =========================================================================
+
+    # TASK 1: EXTRACT DATA
+
     extract_training_data = BashOperator(
         task_id="extract_reviewed_data",
         cwd="/opt/airflow",
@@ -44,9 +44,9 @@ with DAG(
         execution_timeout=timedelta(minutes=30)
     )
 
-    # =========================================================================
-    # TASK 2: Kufanya Training kwa kutumia Docker Operator
-    # =========================================================================
+   
+    # TASK 2: TRAINING
+   
     train_model = DockerOperator(
         task_id="train_model",
         image="fraud-training:latest",
@@ -74,31 +74,29 @@ with DAG(
         xcom_all=False
     )
 
-    # =========================================================================
-    # TASK 3: Kufanya Validation ya Model mpya (FIXED PYTHONPATH)
-    # =========================================================================
+
+    # TASK 3: MODEL VALIDATION
+
     validate_model = BashOperator(
         task_id="validate_model",
         cwd="/opt/airflow",
-        # Tunaongeza PYTHONPATH mbele ya amri ili python ijue wapi pa kutafuta folda la 'ml'
         bash_command="PYTHONPATH=/opt/airflow python ml/training/validate_model.py",
         execution_timeout=timedelta(minutes=30)
     )
 
-    # =========================================================================
-    # TASK 4: Ku-activate Model mpya kwenda uzalishaji (FIXED PYTHONPATH)
-    # =========================================================================
+
+    # TASK 4: MODEL ACTIVATATION
+
     activate_model = BashOperator(
         task_id="activate_model",
         cwd="/opt/airflow",
-        # Ina-import kutoka backend na ml, kwa hiyo kuweka PYTHONPATH=/opt/airflow ni lazima
         bash_command="PYTHONPATH=/opt/airflow python ml/training/activate_model.py",
         execution_timeout=timedelta(minutes=10)
     )
 
-    # =========================================================================
-    # TASK 5: Ku-reload FastAPI ili ianze kutumia Model mpya
-    # =========================================================================
+
+    # TASK 5: API(FastAPI) RELOADING
+
     reload_api = BashOperator(
         task_id="reload_api_model",
         cwd="/opt/airflow",
@@ -106,7 +104,7 @@ with DAG(
         execution_timeout=timedelta(minutes=5)
     )
 
-    # Flow ya Pipeline
+    # TASKS FLOW
     (
         extract_training_data
         >> train_model

@@ -1,36 +1,142 @@
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
+// 1. Tafsiri zetu zote za lugha
 const translations = {
-  en: {
-    title: "BANK OF TANZANIA",
-    subtitle: "Financial Fraud Intelligence & Real-time Audit System",
-    dashboard: "Command Centre", fraudReview: "Fraud Queue", officerManagement: "Officer Registry",
-    modelRegistry: "AI Models", metrics: "Analytical Metrics", graphs: "Advanced Trends",
-    airflow: "Airflow Pipeline", login: "Secure Sign-In", logout: "Exit Session",
-    username: "Staff Username", password: "Password", changePass: "Enforce Password Update",
-    newPass: "New Secure Password", confirm: "Confirm", reject: "Flag Fraud", approve: "Approve TX",
-    status: "Status", agentInsight: "BoT AI Agent Insights", txVolumeTab: "Tx Volume Metrics",
-    forgotPass: "Forgot Password?", resetTitle: "Reset Password Link", backToLogin: "Back to Login",
-    sendCode: "Send Verification Code", verifyCode: "Verify 6-Digit Token", enter6Digit: "Enter 6-Digit Code"
+  SW: {
+    dashboard: "Eneo la Kazi",
+    fraudReviews: "Uhakiki wa Utapeli",
+    models: "Mifano ya AI (Models)",
+    transactions: "Miamala",
+    volumeAnalysis: "Uchambuzi wa Thamani",
+    officers: "Maafisa",
+    airflow: "Nenda Airflow",
+    logout: "Ondoka",
+    confirmAction: "Thibitisha Kitendo",
+    cancel: "Ghairi",
+    confirm: "Thibitisha",
+    active: "Inafanya kazi",
+    inactive: "Haifanyi kazi",
+    status: "Hali",
+    actions: "Vitendo",
+    totalTransactions: "Jumla ya Miamala",
+    predictedFraud: "Kadirio la Utapeli",
+    pendingReviews: "Reviews Zinazosubiri",
+    confirmedFraud: "Utapeli uliothibitishwa",
+    fraudRate: "Kiwango cha Utapeli",
+    loginTitle: "Ingia Kwenye Mfumo - BOT",
+    password: "Nenosiri",
+    newPassword: "Nenosiri Jipya",
+    changePassword: "Badili Nenosiri",
+    forgotPassword: "Umesahau Nenosiri?",
+    resetPassword: "Weka upya Nenosiri",
+    username: "Jina la mtumiaji",
+    fullName: "Jina Kamili",
+    role: "Wajibu",
+    registerOfficer: "Sajili Afisa Mpya",
+    officerList: "Orodha ya Maafisa",
+    search: "Tafuta...",
+    timeframe: "Muda",
+    all: "Zote",
+    trend: "Mwenendo wa Utapeli",
+    metricsTitle: "AI Leaderboard ya Utendaji",
+    metricsSub: "Vipimo vya ubora wa mifumo ya AI iliyosajiliwa (Hali ya Kusoma Tu)",
+    searchModelPlaceholder: "Tafuta Model...",
+    rank: "Nafasi",
+    modelName: "Jina la AI Model",
+    f1ScoreText: "F1-Score (Kipimo Kuu)",
+    precisionText: "Precision",
+    recallText: "Recall (Kiwango cha Ukamataji)",
+    accuracyText: "Accuracy",
+    bestBadge: "Bora Zaidi",
+    loadingMetrics: "Inapakia vipimo vya mifano...",
+    noModelsFound: "Hakuna model yoyote iliyopatikana."
   },
-  sw: {
-    title: "BENKI KUU YA TANZANIA",
-    subtitle: "Mfumo wa Kichujio cha Utapeli wa Kifedha kwa Wakati Halisi",
-    dashboard: "Ukurasa Mkuu", fraudReview: "Foleni ya Mapitio", officerManagement: "Orodha ya Maafisa",
-    modelRegistry: "Mifumo ya AI", metrics: "Vigezo vya Ubora", graphs: "Grafu za Uchambuzi",
-    airflow: "Mtiririko wa Airflow", login: "Ingia Mfumoni", logout: "Ondoka",
-    username: "Jina la Mtumiaji", password: "Nywila", changePass: "Badilisha Nywila ya Lazima",
-    newPass: "Nywila Mpya ya Usalama", confirm: "Thibitisha", reject: "Kataa (Tapeli)", approve: "Ruhusu Muamala",
-    status: "Hali", agentInsight: "Uchambuzi wa Wakala wa AI (BoT)", txVolumeTab: "Ujazo wa Miamala",
-    forgotPass: "Umesahau Nywila?", resetTitle: "Urejesho wa Nywila", backToLogin: "Rudi Nyuma",
-    sendCode: "Tuma Namba ya Uhakiki", verifyCode: "Hakiki Tokeni (Namba 6)", enter6Digit: "Ingiza Namba 6 za Siri"
+  ENG: {
+    dashboard: "Dashboard",
+    fraudReviews: "Fraud Reviews",
+    models: "AI Models",
+    transactions: "Transactions",
+    volumeAnalysis: "Volume & Value",
+    officers: "Officers Admin",
+    airflow: "Go to Airflow",
+    logout: "Logout",
+    confirmAction: "Confirm Action",
+    cancel: "Cancel",
+    confirm: "Confirm",
+    active: "Active",
+    inactive: "Inactive",
+    status: "Status",
+    actions: "Actions",
+    totalTransactions: "Total Transactions",
+    predictedFraud: "Predicted Frauds",
+    pendingReviews: "Pending Reviews",
+    confirmedFraud: "Confirmed Frauds",
+    fraudRate: "Fraud Rate",
+    loginTitle: "Sign In - BOT Portal",
+    password: "Password",
+    newPassword: "New Password",
+    changePassword: "Change Password",
+    forgotPassword: "Forgot Password?",
+    resetPassword: "Reset Password",
+    username: "Username",
+    fullName: "Full Name",
+    role: "Role",
+    registerOfficer: "Register New Officer",
+    officerList: "Officers Directory",
+    search: "Search...",
+    timeframe: "Timeframe",
+    all: "All",
+    trend: "Fraud Trend",
+    metricsTitle: "AI Models Performance Leaderboard",
+    metricsSub: "Registered AI models performance benchmarks (Read-Only Mode)",
+    searchModelPlaceholder: "Search Model...",
+    rank: "Rank",
+    modelName: "AI Model Name",
+    f1ScoreText: "F1-Score (Primary Metric)",
+    precisionText: "Precision",
+    recallText: "Recall (Fraud Catch Rate)",
+    accuracyText: "Accuracy",
+    bestBadge: "Best",
+    loadingMetrics: "Loading model metrics...",
+    noModelsFound: "No models found matching your search."
   }
 };
 
+// 2. Kutengeneza React Context
 const LanguageContext = createContext();
+
+// 3. Provider Component ambayo itafunika App yetu
 export const LanguageProvider = ({ children }) => {
-  const [lang, setLang] = useState('sw');
-  const t = (key) => translations[lang][key] || key;
-  return <LanguageContext.Provider value={{ lang, setLang, t }}>{children}</LanguageContext.Provider>;
+  // Chaguo la msingi ni Swahili (SW) au jinsi mtumiaji alivyosave mwanzoni
+  const [language, setLanguage] = useState(() => {
+    return localStorage.getItem('bot_lang') || 'SW';
+  });
+
+  const toggleLanguage = () => {
+    setLanguage((prevLang) => {
+      const nextLang = prevLang === 'SW' ? 'ENG' : 'SW';
+      localStorage.setItem('bot_lang', nextLang);
+      return nextLang;
+    });
+  };
+
+  // Kazi ya kutafsiri maneno (t function)
+  const t = (key) => {
+    return translations[language][key] || key;
+  };
+
+  return (
+    <LanguageContext.Provider value={{ language, setLanguage, toggleLanguage, t }}>
+      {children}
+    </LanguageContext.Provider>
+  );
 };
-export const useLang = () => useContext(LanguageContext);
+
+// 4. Custom Hook ya kurahisisha matumizi ya lugha
+export const useLanguage = () => {
+  const context = useContext(LanguageContext);
+  if (!context) {
+    throw new Error("useLanguage lazima itumike ndani ya LanguageProvider!");
+  }
+  return context;
+};

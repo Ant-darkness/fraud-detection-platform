@@ -3,18 +3,18 @@ from ml.training.model_registry import get_next_version
 
 
 def activate_model_by_version(version: int, officer_id: int = None):
-
     conn = get_connection()
     cur = conn.cursor()
 
     try:
-        # deactivate all
         cur.execute("""
             UPDATE model_registry
-            SET is_active = FALSE
+            SET is_active = FALSE,
+                activation_status = 'INACTIVE'
+            WHERE is_active = TRUE OR activation_status = 'ACTIVE'
         """)
 
-        # activate selected
+
         cur.execute("""
             UPDATE model_registry
             SET is_active = TRUE,
@@ -25,10 +25,12 @@ def activate_model_by_version(version: int, officer_id: int = None):
         """, (officer_id, version))
 
         conn.commit()
-        print(f"Model v{version} activated safely")
+        print(
+            f"Model v{version} activated safely. All other models deactivated.")
 
     except Exception as e:
         conn.rollback()
+        print(f"Failed to activate model: {e}")
         raise e
 
     finally:

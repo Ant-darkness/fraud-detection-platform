@@ -1,34 +1,38 @@
 import React from 'react';
+import { useLanguage } from '../context/LanguageContext';
 
-export default function ConfirmDialog({ isOpen, title, message, onConfirm, onCancel, type = 'warning', lang = 'sw' }) {
+const ConfirmDialog = ({ isOpen, title, message, onConfirm, onCancel }) => {
   if (!isOpen) return null;
-
-  const styles = {
-    danger: { border: 'border-red-500/30', icon: '⚠️', btn: 'from-red-600 to-red-500 text-white shadow-red-500/20' },
-    warning: { border: 'border-amber-500/30', icon: '🔔', btn: 'from-amber-600 to-amber-500 text-neutral-950 shadow-amber-500/20' },
-    info: { border: 'border-blue-500/30', icon: 'ℹ️', btn: 'from-blue-600 to-blue-500 text-white shadow-blue-500/20' }
-  }[type];
+  const { t } = useLanguage();
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fade-in">
-      <div className="absolute inset-0 bg-neutral-950/85 backdrop-blur-sm" onClick={onCancel}></div>
-      <div className={`relative w-full max-w-md rounded-2xl bg-neutral-900 border ${styles.border} p-6 shadow-2xl transform transition-all scale-100`}>
-        <div className="flex items-start space-x-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-neutral-950 text-lg border border-neutral-800">{styles.icon}</div>
-          <div className="flex-1">
-            <h3 className="text-base font-black text-neutral-100 tracking-tight">{title}</h3>
-            <p className="mt-2 text-xs text-neutral-400 leading-relaxed">{message}</p>
-          </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md">
+      <div className="w-full max-w-md rounded-2xl border-2 border-[#D4AF37]/50 bg-black/85 p-6 shadow-[0_0_50px_rgba(212,175,55,0.15)] text-center">
+        {/* Golden Warning Icon */}
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]">
+          <span className="text-2xl text-[#D4AF37]">⚠️</span>
         </div>
-        <div className="mt-6 flex justify-end space-x-3">
-          <button onClick={onCancel} className="rounded-lg bg-neutral-800 border border-neutral-700/50 px-4 py-2 text-xs font-bold uppercase tracking-wider text-neutral-300 hover:bg-neutral-700/60 transition-colors cursor-pointer">
-            {lang === 'sw' ? 'Ghairi' : 'Cancel'}
+        
+        <h3 className="text-xl font-bold text-[#D4AF37] uppercase tracking-wider">{title}</h3>
+        <p className="mt-3 text-sm text-gray-300 leading-relaxed">{message}</p>
+
+        <div className="mt-6 flex justify-center gap-4">
+          <button
+            onClick={onCancel}
+            className="px-5 py-2.5 rounded-lg border border-red-500/30 bg-red-950/20 text-red-400 text-sm font-semibold hover:bg-red-500 hover:text-white transition-all duration-200 cursor-pointer"
+          >
+            {t('cancel')}
           </button>
-          <button onClick={onConfirm} className={`rounded-lg bg-gradient-to-r ${styles.btn} px-5 py-2 text-xs font-black uppercase tracking-wider shadow-lg hover:brightness-110 active:scale-95 transition-all cursor-pointer`}>
-            {lang === 'sw' ? 'Thibitisha' : 'Confirm'}
+          <button
+            onClick={onConfirm}
+            className="px-5 py-2.5 rounded-lg border border-blue-500/30 bg-blue-950/30 text-blue-400 text-sm font-semibold hover:bg-blue-600 hover:text-white transition-all duration-200 shadow-[0_0_15px_rgba(59,130,246,0.3)] cursor-pointer"
+          >
+            {t('confirm')}
           </button>
         </div>
       </div>
     </div>
   );
-}
+};
+
+export default ConfirmDialog;

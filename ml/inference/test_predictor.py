@@ -1,6 +1,4 @@
-from ml.inference.predictor import (
-    FraudPredictor
-)
+from ml.inference.predictor import FraudPredictor
 
 predictor = FraudPredictor()
 

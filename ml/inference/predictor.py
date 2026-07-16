@@ -1,109 +1,84 @@
-from pathlib import Path, PureWindowsPath
 import joblib
-import numpy as np
+import os
 import pandas as pd
-from backend.app.database.connection import get_connection
-
-
+import numpy as np
+from backend.app.services.model_service import get_active_model
 class FraudPredictor:
     def __init__(self):
-        
-        self.model = self.load_active_model()
-        
-    #def load_active_model(self):
-    #    conn = get_connection()
-        
-    #    try:
-    #        cursor = conn.cursor()
-    #        cursor.execute("""
-    #                    SELECT model_path
-    #                    FROM model_registry
-    #                    WHERE is_active = TRUE""")
-            
-    #        row = cursor.fetchone()
-            
-    #        if row is None:
-    #            raise Exception("No active model found.")
-            
-    #        model_path = Path(PureWindowsPath(row[0]))
-            
-    #        if not model_path.is_absolute():
-    #            model_path = Path("/app") / model_path
-            
-    #        print(f"Loading model: {model_path}")
-            
-    #        return joblib.load(model_path)
-    #    finally:
-    #        cursor.close()
-    #        conn.close()
-    
-    
+        self.model = None
+        self.model_path = None
+        self.feature_cols = [
+            "step", 
+            "type", 
+            "amount", 
+            "oldbalanceOrg", 
+            "newbalanceOrig", 
+            "oldbalanceDest", 
+            "newbalanceDest"
+        ]
+        self.reload_model()
+
     def reload_model(self):
-        self.model = self.load_active_model()
         
+        active = get_active_model()
+        if active:
+            model_id,model_path, name, version, desc, size = active
+            path = model_path  
+            if os.path.exists(path):
+                self.model = joblib.load(path)
+                self.model_path = path
+                print(f"Loaded active model {name} v{version} successfully.")
+            else:
+                print(f"Model file not found at '{path}'. Using dummy model for now.")
+                self.model = None
+        else:
+            print("No active model found in database. Using dummy model.")
+            self.model = None
 
-    def predict(self, features):
+    def predict(self, transaction_data) -> dict:
+        
+        if isinstance(transaction_data, dict):
+            
+            cleaned_data = {col: transaction_data.get(col, 0) for col in self.feature_cols}
+            features_df = pd.DataFrame([cleaned_data])
+        elif isinstance(transaction_data, pd.DataFrame):
+            
+            features_df = transaction_data[self.feature_cols].copy()
+        else:
+            raise ValueError("Data Must be  Dictionary or Pandas DataFrame!")
 
-        # always ensure DataFrame is 2D correct shape
-        if not isinstance(features, pd.DataFrame):
-            features = pd.DataFrame([features])
-
-        # FORCE no nested structure issues
-        features = features.copy()
-
-        prob = self.model.predict_proba(features)[:, 1][0]
-
-        prediction = int(prob >= 0.9)
-        label = "Fraud" if prediction else "Not Fraud"
-
-        return {
-            "prediction": prediction,
-            "prediction_label": label,
-            "fraud_probability": float(prob)
-        }
-
-    def load_active_model(self):
-
-        conn = get_connection()
+        
+        if self.model is None:
+            return {
+                "prediction": False,
+                "fraud_probability": 0.1,  
+                "features": features_df.to_dict(orient="records")[0]
+            }
 
         try:
-
-            cursor = conn.cursor()
-
-            cursor.execute("""
-                SELECT model_path
-                FROM model_registry
-                WHERE is_active = TRUE
-            """)
-
-            row = cursor.fetchone()
-
-            if row is None:
-                raise Exception("No active model found.")
-
-            db_path = Path(row[0])
-
             
-            PROJECT_ROOT = Path(__file__).resolve().parents[2]
-
-            if not db_path.is_absolute():
-                model_path = PROJECT_ROOT / db_path
+            if hasattr(self.model, "predict_proba"):
+                proba = self.model.predict_proba(features_df)[0][1]
             else:
-                model_path = db_path
+               
+                pred_val = self.model.predict(features_df)[0]
+                proba = 1.0 if pred_val else 0.0
 
-            model_path = model_path.resolve()
+            pred = proba >= 0.5  
 
-            print(f"Loading model: {model_path}")
+            return {
+                "prediction": bool(pred),
+                "fraud_probability": float(proba),
+                "features": features_df.to_dict(orient="records")[0]
+            }
 
-            if not model_path.exists():
-                raise FileNotFoundError(
-                    f"Model not found:\n{model_path}"
-                )
+        except Exception as e:
+            print(f"Error during model prediction: {e}. Falling back to dummy.")
+            return {
+                "prediction": False,
+                "fraud_probability": 0.0,
+                "error": str(e)
+            }
 
-            return joblib.load(model_path)
 
-        finally:
-            cursor.close()
-            conn.close()
-      
 predictor = FraudPredictor()

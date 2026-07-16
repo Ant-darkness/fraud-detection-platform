@@ -21,24 +21,28 @@ OUTPUT_PATH = Path(
 
 
 QUERY = """
-SELECT
-
-    t.step,
-    t.type,
-    t.amount,
-    t.oldbalanceOrg,
-    t.newbalanceOrig,
-    t.oldbalanceDest,
-    t.newbalanceDest,
-
-    f.prediction AS isFraud
-
+SELECT 
+    t.transaction_id,
+    t.step AS "step",
+    t.type AS "type",
+    t.amount AS "amount",
+    t.oldbalanceOrg AS "oldbalanceOrg",
+    t.newbalanceOrig AS "newbalanceOrig",
+    t.oldbalanceDest AS "oldbalanceDest",
+    t.newbalanceDest AS "newbalanceDest",
+    COALESCE(q.final_label, p.prediction) AS "isFraud"
+    
 FROM transactions t
+LEFT JOIN fraud_review_queue q 
+    ON t.transaction_id = q.transaction_id 
+    AND q.status = 'REVIEWED'
+LEFT JOIN fraud_predictions p 
+    ON t.transaction_id = p.transaction_id
+WHERE 
+    q.final_label IS NOT NULL  
+    OR p.prediction IS NOT NULL; 
 
-INNER JOIN fraud_predictions f 
-ON t.transaction_id = f.transaction_id
 """
-
 
 def main():
 

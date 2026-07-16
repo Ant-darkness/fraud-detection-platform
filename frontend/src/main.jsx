@@ -1,20 +1,9 @@
-//import { StrictMode } from 'react'
-//import { createRoot } from 'react-dom/client'
-//import './index.css'
-//import App from './App.jsx'
-
-//createRoot(document.getElementById('root')).render(
-//  <StrictMode>
-//    <App />
-//  </StrictMode>,
-//)
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App.jsx';
-import { LanguageProvider } from './context/LanguageContext.jsx';
-import { AuthProvider } from './context/AuthContext.jsx';
-import './index.css';
+import App from './App';
+import { AuthProvider } from './context/AuthContext';
+import { LanguageProvider } from './context/LanguageContext';
+import './index.css'; // Hakikisha umeweka Tailwind v4
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -25,5 +14,3 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </LanguageProvider>
   </React.StrictMode>
 );
-
-

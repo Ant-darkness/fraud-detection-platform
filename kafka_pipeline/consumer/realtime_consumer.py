@@ -7,19 +7,13 @@ from kafka import KafkaConsumer
 from ml.inference.predictor import FraudPredictor
 from backend.app.database.connection import get_connection
 
-# -----------------------------
-# CONFIG
-# -----------------------------
 TOPIC = "transactions"
-THRESHOLD = 0.9  # BoT Risk Appetite Threshold
+THRESHOLD = 0.9
 GROUP_ID = "fraud-realtime-group-v3"
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(message)s"
-)
+logging.basicConfig(level=logging.INFO,
+                    format="%(asctime)s | %(levelname)s | %(message)s")
 
-# Initialize Model
 predictor = FraudPredictor()
 
 
@@ -30,7 +24,6 @@ def get_db():
 
 conn, cursor = get_db()
 
-# Consumer Setup
 consumer = KafkaConsumer(
     TOPIC,
     bootstrap_servers="localhost:9092",
@@ -43,9 +36,6 @@ consumer = KafkaConsumer(
 
 logging.info("BoT Compliant Fraud Realtime Consumer started...")
 
-# -----------------------------
-# MAIN LOOP
-# -----------------------------
 while True:
     try:
         for message in consumer:
@@ -56,38 +46,17 @@ while True:
                 logging.warning("Muamala umekosa transaction_id! Skipped.")
                 continue
 
-            # 1. FEATURE ENGINEERING
-            features = pd.DataFrame([{
-                "step": feature["step"],
-                "type": feature["type"],
-                "amount": feature["amount"],
-                "oldbalanceOrg": feature["oldbalanceOrg"],
-                "newbalanceOrig": feature["newbalanceOrig"],
-                "oldbalanceDest": feature["oldbalanceDest"],
-                "newbalanceDest": feature["newbalanceDest"]
-            }])
-
-            # 2. MODEL PREDICTION
-            result = predictor.predict(features)
-            probability = float(result["fraud_probability"])
-            prediction = bool(result["prediction"])
-
             try:
                 conn.autocommit = False
 
-                # 3. AMUA STATUS YA MUAMALA (BoT Control Logic)
-                # Kama risk ipo juu ya threshold, muamala unakuwa 'HELD' (Umezuiliwa)
-                tx_status = "HELD" if probability >= THRESHOLD else "APPROVED"
-
-                # 4. INGIZA MUAMALA KWENYE TABLE KUU (Hifadhi Audit Trail daima)
+                # STEP 1: STORE transactions in Transactions Table
                 cursor.execute(
                     """
                     INSERT INTO transactions (
                         transaction_id, step, type, amount, nameOrig,
-                        oldbalanceOrg, newbalanceOrig, nameDest, oldbalanceDest, newbalanceDest,
-                        status, final_label
+                        oldbalanceOrg, newbalanceOrig, nameDest, oldbalanceDest, newbalanceDest
                     )
-                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s, FALSE)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                     ON CONFLICT (transaction_id) DO NOTHING
                     """,
                     (
@@ -96,23 +65,26 @@ while True:
                         str(feature["nameOrig"]), float(
                             feature["oldbalanceOrg"]), float(feature["newbalanceOrig"]),
                         str(feature["nameDest"]), float(
-                            feature["oldbalanceDest"]), float(feature["newbalanceDest"]),
-                        tx_status
+                            feature["oldbalanceDest"]), float(feature["newbalanceDest"])
                     )
                 )
 
-                # 5. HIFADHI PREDICTION KWA AJILI YA AUDIT NA MODEL MONITORING
-                cursor.execute(
-                    """
-                    INSERT INTO fraud_predictions (transaction_id, fraud_probability, prediction)
-                    VALUES (%s, %s, %s)
-                    ON CONFLICT (transaction_id) DO NOTHING
-                    """,
-                    (transaction_id, probability, prediction)
-                )
+                # STEP 2: Feature Engineering & Model Prediction
+                features = pd.DataFrame([{
+                    "step": feature["step"],
+                    "type": feature["type"],
+                    "amount": feature["amount"],
+                    "oldbalanceOrg": feature["oldbalanceOrg"],
+                    "newbalanceOrig": feature["newbalanceOrig"],
+                    "oldbalanceDest": feature["oldbalanceDest"],
+                    "newbalanceDest": feature["newbalanceDest"]
+                }])
 
-                # 6. KAMA NI RISK KUBWA, SUKUMA KWENYE QUEUE YA MAAFISA
-                if tx_status == "HELD":
+                result = predictor.predict(features)
+                probability = float(result["fraud_probability"])
+
+                # STEP 3: (i) FRAUD -> Fraud_review_queue Table
+                if probability >= THRESHOLD:
                     cursor.execute(
                         """
                         INSERT INTO fraud_review_queue (transaction_id, fraud_probability, status)
@@ -122,10 +94,20 @@ while True:
                         (transaction_id, probability)
                     )
                     logging.info(
-                        f"TX={transaction_id} | RISK={probability:.4f} | STATUS=HELD -> Sent to Officer Queue.")
+                        f"TX={transaction_id} | RISK={probability:.4f} -> Sent to Officer Queue (Pending Review).")
+
                 else:
+                    # (ii)  NON-FRAUD ->  Fraud_predictions Table
+                    cursor.execute(
+                        """
+                        INSERT INTO fraud_predictions (transaction_id, fraud_probability, prediction)
+                        VALUES (%s, %s, FALSE)
+                        ON CONFLICT (transaction_id) DO NOTHING
+                        """,
+                        (transaction_id, probability)
+                    )
                     logging.info(
-                        f"TX={transaction_id} | RISK={probability:.4f} | STATUS=APPROVED -> Processed Immediately.")
+                        f"TX={transaction_id} | RISK={probability:.4f} -> Saved directly to Predictions (Non-Fraud).")
 
                 conn.commit()
 
@@ -154,7 +136,6 @@ while True:
         except:
             pass
 
-        # Re-initialize consumer
         consumer = KafkaConsumer(
             TOPIC, bootstrap_servers="localhost:9092", auto_offset_reset="latest",
             enable_auto_commit=True, group_id=GROUP_ID,

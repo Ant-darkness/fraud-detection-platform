@@ -1,74 +1,23 @@
 STRUCTURE
 
-frontend/
-│
-├── public/
-│
-├── src/
-│   │
-│   ├── api/
-│   │      axios.js
-│   │      authApi.js
-│   │      dashboardApi.js
-│   │      transactionApi.js
-│   │      reviewApi.js
-│   │      modelApi.js
-│   │      metricApi.js
-│   │      officerApi.js
-│   │
-│   ├── assets/
-│   │      bot-logo.png
-│   │
-│   ├── components/
-│   │      │
-│   │      ├── common/
-│   │      │      Button.jsx
-│   │      │      Card.jsx
-│   │      │      Badge.jsx
-│   │      │      Modal.jsx
-│   │      │      ConfirmDialog.jsx
-│   │      │      Loading.jsx
-│   │      │      EmptyState.jsx
-│   │      │
-│   │      ├── dashboard/
-│   │      │      StatCard.jsx
-│   │      │      FraudTrendChart.jsx
-│   │      │
-│   │      ├── layout/
-│   │      │      Sidebar.jsx
-│   │      │      MobileSidebar.jsx
-│   │      │      Topbar.jsx
-│   │      │
-│   │      └── tables/
-│   │             TransactionsTable.jsx
-│   │             ReviewsTable.jsx
-│   │             ModelsTable.jsx
-│   │             MetricsTable.jsx
-│   │             OfficersTable.jsx
-│   │
-│   ├── layouts/
-│   │      DashboardLayout.jsx
-│   │
-│   ├── pages/
-│   │      Login.jsx
-│   │      ChangePassword.jsx
-│   │      Dashboard.jsx
-│   │      Transactions.jsx
-│   │      Reviews.jsx
-│   │      Models.jsx
-│   │      Metrics.jsx
-│   │      Officers.jsx
-│   │
-│   ├── routes/
-│   │      ProtectedRoute.jsx
-│   │
-│   ├── styles/
-│   │      theme.css
-│   │
-│   ├── App.jsx
-│   ├── main.jsx
-│   └── index.css
-│
-├── package.json
-├── vite.config.js
-└── index.html
+src/
+├── assets/
+│   └── logo.png             # Logo yako (Inakaa hapa au kwenye public/)
+├── context/
+│   ├── AuthContext.jsx      # Kusimamia Login, Logout, Session ya 5-mins, na temporary password
+│   └── LanguageContext.jsx  # Kusimamia utafsiri wa lugha (Swahili/English)
+├── components/
+│   ├── Sidebar.jsx          # Glassmorphism Fixed Sidebar
+│   ├── Topbar.jsx           # Pink Topbar yenye Golden Text na Logo
+│   ├── ConfirmDialog.jsx    # Golden Confirmation Dialog inayotumika mfumo mzima
+│   └── GlassCard.jsx        # Reusable component ya Glass Container
+├── pages/
+│   ├── Login.jsx            # Login page (pamoja na Change Password & Reset Password)
+│   ├── Dashboard.jsx        # Advanced Analytics na Fraud Graphs zenye range-filters
+│   ├── VolumeAnalysis.jsx   # Volume & Amount Analytics na Agent Explanations
+│   ├── FraudReviews.jsx     # Pending reviews, Transaction inspection modal, Approve/Reject
+│   ├── ModelsRegistry.jsx   # Leaderboard ya models, Activation/Delete/Deactivation
+│   ├── OfficersAdmin.jsx    # Usimamizi wa Officers (Admin Only) & Registration Form
+│   └── Transactions.jsx     # Orodha kamili ya miamala yote
+├── App.jsx                  # Main App with Router & Layout
+└── main.jsx                 # Entry point

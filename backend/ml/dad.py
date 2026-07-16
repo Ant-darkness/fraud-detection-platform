@@ -1,7 +1,7 @@
 import pandas as pd
 
-df = pd.read_parquet("backend/ml/fraud_training.parquet")
+df = pd.read_parquet("ml/data/training_feedback.parquet")
 
-print(df.shape)
-print(df["isFraud"].value_counts())
-print(df.dtypes)
+
+print(df["isfraud"].value_counts())
+

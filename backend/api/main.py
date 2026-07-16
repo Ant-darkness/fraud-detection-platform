@@ -49,3 +49,7 @@ app.include_router(auth_router)
 app.include_router(transaction_router)
 
 app.include_router(notification_router)
+
+#@app.on_event("startup")
+#def startup():
+#    from ml.inference.predictor import predictor.reload_model()

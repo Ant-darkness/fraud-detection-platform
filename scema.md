@@ -1,5 +1,5 @@
-
-
+METRIC_REGISTRY TABLE
+`
 DROP TABLE IF EXISTS metric_registry CASCADE;
 CREATE TABLE metric_registry (
 
@@ -27,7 +27,11 @@ CREATE TABLE metric_registry (
         ON DELETE CASCADE
 
 );
+`
 
+
+MODEL_REGISTRY TABLE
+`
 DROP TABLE IF EXISTS model_registry CASCADE;
 CREATE TABLE model_registry (
 
@@ -58,7 +62,10 @@ CREATE TABLE model_registry (
         REFERENCES officers(officer_id)
 
 );
+`
 
+FRAUD_REVIEW_QUEUE TABLE
+`
 DROP TABLE IF EXISTS fraud_review_queue CASCADE;
 CREATE TABLE fraud_review_queue (
 
@@ -88,7 +95,10 @@ CREATE TABLE fraud_review_queue (
         REFERENCES officers(officer_id)
 
 );
+`
 
+FRAUD_PREDICTIONS TABLE
+`
 DROP TABLE IF EXISTS fraud_predictions CASCADE;
 CREATE TABLE fraud_predictions (
 
@@ -108,7 +118,9 @@ CREATE TABLE fraud_predictions (
         ON DELETE CASCADE
 
 );
-
+`
+TRANSACTIONS TABLE
+`
 DROP TABLE IF EXISTS transactions CASCADE;
 CREATE TABLE transactions (
 
@@ -132,14 +144,12 @@ CREATE TABLE transactions (
 
     newbalanceDest DOUBLE PRECISION NOT NULL,
 
-    status VARCHAR(20) NOT NULL DEFAULT 'APPROVED',
-
-    final_label BOOLEAN DEFAULT FALSE,
-
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 
 );
-
+`
+OFFICERS TABLE
+`
 DROP TABLE IF EXISTS officers CASCADE;
 CREATE TABLE officers (
 
@@ -173,6 +183,24 @@ CREATE TABLE officers (
         ON DELETE SET NULL
 
 );
+`
+PASSWORD_RESET_TOKENS TABLE
+`CREATE TABLE password_reset_tokens (
+    token_id BIGSERIAL PRIMARY KEY,
+    officer_id BIGINT NOT NULL,
+    token_hash VARCHAR(255) NOT NULL UNIQUE,
+    expires_at TIMESTAMP NOT NULL,
+    is_used BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_token_officer
+        FOREIGN KEY (officer_id)
+        REFERENCES officers(officer_id)
+        ON DELETE CASCADE
+);
+
+-- Index ya kufanya utafutaji wa token uwe wa haraka sana
+CREATE INDEX idx_reset_token ON password_reset_tokens(token_hash);
+`
 
 Threshold  Fraud Recall  Precision
 0.20       95%           10%
@@ -185,5 +213,3 @@ npm install react-router-dom axios react-hook-form react-hot-toast recharts jwt-
 npm install lucide-react
 
 npm install -D tailwindcss @tailwindcss/vite
-
-

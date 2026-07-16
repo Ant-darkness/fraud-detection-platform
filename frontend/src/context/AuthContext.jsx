@@ -1,85 +1,108 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { api } from '../services/api';
 
-// Tạo Context
-const AuthContext = createContext(null);
+const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem('bot_user');
+    return saved ? JSON.parse(saved) : null;
+  });
+  
+  const [lastActive, setLastActive] = useState(() => {
+    return localStorage.getItem('bot_last_active') || Date.now();
+  });
 
-    // Angalia kama kuna token iliyohifadhiwa mtumiaji anapofungua mfumo
-    useEffect(() => {
-        const storedToken = localStorage.getItem('bot_auth_token');
-        const storedUser = localStorage.getItem('bot_user_data');
+  const [mustChangePassword, setMustChangePassword] = useState(false);
 
-        if (storedToken && storedUser) {
-            try {
-                setUser(JSON.parse(storedUser));
-            } catch (error) {
-                console.error("Imeshindwa kusoma data za mtumiaji:", error);
-                logout();
-            }
+  // Kufuatilia usalama wa Session (dakika 5)
+  useEffect(() => {
+    const checkSession = () => {
+      if (user) {
+        const now = Date.now();
+        const inactiveTime = now - parseInt(lastActive, 10);
+        if (inactiveTime > 300000) {
+          logout();
+          alert("Kipindi chako kimeisha kwa usalama. Tafadhali ingia tena.");
         }
-        setLoading(false);
-    }, []);
-
-    const login = async (username, password) => {
-        try {
-            const response = await fetch('http://localhost:8000/auth/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                // Hakikisha funguo hizi zinafanana na majina yaliyopo kwenye BaseModel ya Python (mfano: email au username)
-                body: JSON.stringify({ 
-                    email: username, // Kama backend inatarajia 'email'
-                    password: password 
-                }),
-            });
-    
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.detail || 'Imeshindwa kuingia');
-            }
-    
-            const data = await response.json();
-            localStorage.setItem('bot_auth_token', data.access_token);
-            localStorage.setItem('bot_user_data', JSON.stringify(data.user || data.officer));
-            
-            setUser(data.user || data.officer);
-            return { success: true };
-        } catch (error) {
-            return { success: false, error: error.message };
-        }
-    };
-    
-    
-
-    // Kitendo cha Logout
-    const logout = () => {
-        localStorage.removeItem('bot_auth_token');
-        localStorage.removeItem('bot_user_data');
-        setUser(null);
+      }
     };
 
-    // Kuchuja nani anaruhusiwa kuona nini (Role-based access helper)
-    const hasRole = (allowedRoles) => {
-        if (!user) return false;
-        return allowedRoles.includes(user.role);
+    const interval = setInterval(checkSession, 10000);
+    return () => clearInterval(interval);
+  }, [user, lastActive]);
+
+  const updateActivity = () => {
+    const now = Date.now();
+    setLastActive(now);
+    localStorage.setItem('bot_last_active', now.toString());
+  };
+
+  useEffect(() => {
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+    const handleActivity = () => updateActivity();
+
+    events.forEach(event => window.addEventListener(event, handleActivity));
+    return () => {
+      events.forEach(event => window.removeEventListener(event, handleActivity));
     };
+  }, [user]);
 
-    return (
-        <AuthContext.Provider value={{ user, login, logout, hasRole, loading }}>
-            {!loading && children}
-        </AuthContext.Provider>
-    );
-};
+  // --- LIVE LOGIN FUNCTION ---
+  const login = async (email, password) => {
+    try {
+      // Piga simu kwenda FastAPI Backend!
+      const data = await api.auth.login(email, password);
+      
+      const loggedInUser = {
+        officer_id: data.officer_id,
+        full_name: data.full_name,
+        email: data.email,
+        role: data.role,
+        token: data.access_token || data.token
+      };
 
-// Custom hook kwa ajili ya kutumia Auth kirahisi kwenye kurasa zingine
-export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (!context) {
-        throw new Error('useAuth lazima itumike ndani ya AuthProvider');
+      // Uhifadhi wa token ya JWT kwenye localStorage ukiwa umebaki salama
+      localStorage.setItem('bot_user', JSON.stringify(loggedInUser));
+      setUser(loggedInUser);
+      
+      if (data.must_change_password) {
+        setMustChangePassword(true);
+        return { success: true, mustChangePassword: true };
+      } else {
+        setMustChangePassword(false);
+        updateActivity();
+        return { success: true, mustChangePassword: false };
+      }
+    } catch (err) {
+      return { success: false, error: err.message || "Imeshindikana kuingia kwenye mfumo." };
     }
-    return context;
+  };
+
+  // --- FORCE CHANGE PASSWORD (Wakati wa First Login) ---
+  const changeForcePassword = async (newPassword) => {
+    try {
+      // Piga endpoint ya /auth/change-password tukiambatanisha token ya huyu mtu
+      await api.auth.changePassword(newPassword);
+      setMustChangePassword(false);
+      updateActivity();
+      return true;
+    } catch (err) {
+      throw new Error(err.message || "Imeshindikana kusasisha nenosiri.");
+    }
+  };
+
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('bot_user');
+    localStorage.removeItem('bot_last_active');
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, login, logout, mustChangePassword, setMustChangePassword, changeForcePassword, updateActivity }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
+
+export const useAuth = () => useContext(AuthContext);

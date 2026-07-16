@@ -18,6 +18,7 @@ def main():
 
     df = pd.read_parquet(DATA_PATH)
 
+
     X = df.drop(columns=["isFraud"])
     y = df["isFraud"]
 

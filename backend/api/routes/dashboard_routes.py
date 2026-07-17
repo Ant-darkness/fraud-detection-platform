@@ -11,17 +11,29 @@ router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 def summary():
     return dashboard_summary()
 
+
 @router.get("/analytics")
 def analytics(
-    timeframe: str = Query("7days", regex="^(24hrs|7days|4weeks|1year)$"),
+    timeframe: str = Query("7days", pattern="^(24hrs|7days|4weeks|1year)$"),
     start_date: Optional[str] = None,
     end_date: Optional[str] = None
 ):
+    # Majina ya start_date na end_date sasa yamenyoooka pande zote
     return get_advanced_analytics(timeframe, start_date, end_date)
 
+
 @router.get("/volume-comparison")
-def comparison():
-    return get_volume_comparison()
+def comparison(
+    timeframe: str = Query(
+        "7days", description="24hrs, 7days, 4weeks, au 1year"),
+    custom_start: Optional[str] = Query(None),
+    custom_end: Optional[str] = Query(None)
+):
+    return get_volume_comparison(
+        timeframe=timeframe,
+        custom_start=custom_start,
+        custom_end=custom_end
+    )
 
 @router.get("/recent-predictions")
 def recent():

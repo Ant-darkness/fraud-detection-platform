@@ -30,10 +30,10 @@ def approve_review(review_id: int, officer_id: int):
         if not row:
             raise HTTPException(status_code=404, detail="Review not found")
         transaction_id = row[0]
-        cursor.execute("UPDATE transactions SET status = 'APPROVED', final_label = FALSE WHERE transaction_id = %s", (transaction_id,))
+        #cursor.execute("UPDATE transactions SET status = 'APPROVED', final_label = FALSE WHERE transaction_id = %s", (transaction_id,))
         cursor.execute("""
             UPDATE fraud_review_queue
-            SET status='APPROVED', final_label=FALSE, reviewed_by=%s, reviewed_at=CURRENT_TIMESTAMP
+            SET status='NOTFRAUD', final_label=FALSE, reviewed_by=%s, reviewed_at=CURRENT_TIMESTAMP
             WHERE review_id=%s
         """, (officer_id, review_id))
         conn.commit()
@@ -55,10 +55,10 @@ def reject_review(review_id: int, officer_id: int):
         if not row:
             raise HTTPException(status_code=404, detail="Review not found")
         transaction_id = row[0]
-        cursor.execute("UPDATE transactions SET status = 'REJECTED', final_label = TRUE WHERE transaction_id = %s", (transaction_id,))
+        #cursor.execute("UPDATE transactions SET status = 'REJECTED', final_label = TRUE WHERE transaction_id = %s", (transaction_id,))
         cursor.execute("""
             UPDATE fraud_review_queue
-            SET status='REJECTED', final_label=TRUE, reviewed_by=%s, reviewed_at=CURRENT_TIMESTAMP
+            SET status='ISFRAUD', final_label=TRUE, reviewed_by=%s, reviewed_at=CURRENT_TIMESTAMP
             WHERE review_id=%s
         """, (officer_id, review_id))
         conn.commit()

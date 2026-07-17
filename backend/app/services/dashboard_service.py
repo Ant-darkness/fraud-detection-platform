@@ -1,3 +1,7 @@
+from .ai_agent import run_policy_ai_agent
+import json
+from .ai_agent import run_policy_ai_agent  # Hakikisha una-import module yako mpya
+from datetime import datetime
 from fastapi import HTTPException
 from backend.app.database.connection import get_connection
 
@@ -35,86 +39,176 @@ def dashboard_summary():
         conn.close()
 
 
-def get_advanced_analytics(timeframe: str = "7days", custom_start: str = None, custom_end: str = None):
+def get_advanced_analytics(timeframe: str = "7days", start_date: str = None, end_date: str = None):
     conn = get_connection()
     try:
         cursor = conn.cursor()
         where_clause = "WHERE 1=1"
         params = []
-        if custom_start and custom_end:
+
+        if start_date and end_date:
             where_clause += " AND t.created_at BETWEEN %s AND %s"
-            params.extend([custom_start, custom_end])
+            params.extend([start_date, end_date])
+            trunc_type = 'day'
         else:
             if timeframe == "24hrs":
-                where_clause += " AND t.created_at >= NOW() - INTERVAL '24 hours'"
+                # Inaanza saa 00:00 usiku wa leo rasmi ya kalenda
+                where_clause += " AND t.created_at >= CURRENT_DATE"
+                trunc_type = 'hour'
             elif timeframe == "4weeks":
-                where_clause += " AND t.created_at >= NOW() - INTERVAL '4 weeks'"
+                where_clause += " AND t.created_at >= CURRENT_DATE - INTERVAL '4 weeks'"
+                trunc_type = 'day'
             elif timeframe == "1year":
-                where_clause += " AND t.created_at >= NOW() - INTERVAL '1 year'"
+                where_clause += " AND t.created_at >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '11 months'"
+                trunc_type = 'month'
+            else:  # 7days
+                where_clause += " AND t.created_at >= CURRENT_DATE - INTERVAL '6 days'"
+                trunc_type = 'day'
+
+        # Helper function ya kutengeneza label safi ya muda kwa ajili ya Frontend X-Axis
+        def format_label(dt_obj):
+            if not isinstance(dt_obj, datetime):
+                return str(dt_obj)
+            if timeframe == "24hrs":
+                return dt_obj.strftime("%H:%M")  # Mfano: 04:00
+            elif timeframe == "1year":
+                return dt_obj.strftime("%b %Y")  # Mfano: Jan 2026
             else:
-                where_clause += " AND t.created_at >= NOW() - INTERVAL '7 days'"
+                return dt_obj.strftime("%d %b")  # Mfano: 17 Jul
 
-        # Kutumia LEFT JOIN kupata status sahihi kutoka kwenye queue ya reviews
-        cursor.execute(f"""
-            SELECT COALESCE(q.status, 'CLEARED') as txn_status, COUNT(*), SUM(t.amount)
-            FROM transactions t
-            LEFT JOIN fraud_review_queue q ON t.transaction_id = q.transaction_id
-            {where_clause}
-            GROUP BY txn_status
-        """, params)
-        distribution = cursor.fetchall()
-
-        trunc_type = 'hour' if timeframe == "24hrs" else 'day' if timeframe in [
-            "7days", "4weeks"] else 'month'
-
+        # Query 1: Trend ya miamala yenye shaka/utapeli uliokataliwa (BarChart)
         cursor.execute(f"""
             SELECT DATE_TRUNC('{trunc_type}', t.created_at) as period, COUNT(*)
             FROM transactions t
             INNER JOIN fraud_review_queue q ON t.transaction_id = q.transaction_id
-            {where_clause} AND q.status = 'REJECTED'
+            {where_clause} AND q.status = 'ISFRAUD'
             GROUP BY period ORDER BY period
         """, params)
-        trends = cursor.fetchall()
+        trends_raw = cursor.fetchall()
 
+        trend_list = [
+            {
+                "time_label": format_label(r[0]),
+                "count": r[1]
+            }
+            for r in trends_raw
+        ]
+
+        # Query 2: Dynamic Time-Series Distribution (AreaChart)
         cursor.execute(f"""
-            SELECT DATE_TRUNC('{trunc_type}', t.created_at) as period, COUNT(*) as vol, SUM(t.amount) as amt
+            SELECT DATE_TRUNC('{trunc_type}', t.created_at) as period, COUNT(*)
             FROM transactions t
-            {where_clause}
+            INNER JOIN fraud_review_queue q ON t.transaction_id = q.transaction_id
+            {where_clause} AND q.status IN ('PENDING', 'ISFRAUD')
             GROUP BY period ORDER BY period
         """, params)
-        volume_analytics = cursor.fetchall()
+        distribution_raw = cursor.fetchall()
+
+        dist_list = [
+            {
+                "time_label": format_label(r[0]),
+                "count": r[1]
+            }
+            for r in distribution_raw
+        ]
 
         return {
-            "distribution": [{"status": r[0], "count": r[1], "amount": r[2]} for r in distribution],
-            "trends": [{"period": str(r[0]), "count": r[1]} for r in trends],
-            "volume_analytics": [{"period": str(r[0]), "volume": r[1], "amount": r[2]} for r in volume_analytics]
+            "trend": trend_list,
+            "distribution": dist_list
         }
+
     finally:
         cursor.close()
         conn.close()
 
 
-def get_volume_comparison():
+
+def get_volume_comparison(timeframe: str = "7days", custom_start: str = None, custom_end: str = None):
     conn = get_connection()
     try:
         cursor = conn.cursor()
-        cursor.execute("""
-            SELECT
-                COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE) as today_vol,
-                COALESCE(SUM(amount) FILTER (WHERE created_at >= CURRENT_DATE), 0) as today_amt,
-                COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '1 day' AND created_at < CURRENT_DATE) as yesterday_vol,
-                COALESCE(SUM(amount) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '1 day' AND created_at < CURRENT_DATE), 0) as yesterday_amt
-            FROM transactions;
-        """)
-        r = cursor.fetchone()
-        insight = "Volume ipo imara."
-        if r[2] > 0 and r[0] < r[2] and r[1] > r[3]:
-            insight = f"Tahadhari: Leo kuna miamala michache ({r[0]}) lakini yenye thamani kubwa zaidi (Tsh {r[1]:,.2f}) kuliko jana ({r[2]} miamala ya Tsh {r[3]:,.2f}). Hii inaashiria uwezekano mkubwa wa miamala ya kitapeli ya viwango vya juu (High-Value Fraud Burst)."
+        where_clause = "WHERE 1=1"
+        params = []
+
+        if custom_start and custom_end:
+            where_clause += " AND t.created_at BETWEEN %s AND %s"
+            params.extend([custom_start, custom_end])
+            trunc_type = 'day'
+        else:
+            if timeframe == "24hrs":
+                # Kuanzia saa 00:00 usiku wa leo (Calendar Day boundary)
+                where_clause += " AND t.created_at >= CURRENT_DATE"
+                trunc_type = 'hour'
+            elif timeframe == "7days":
+                # Kuanzia Jumatatu ya wiki hii au siku 7 rasmi za kalenda
+                where_clause += " AND t.created_at >= CURRENT_DATE - INTERVAL '6 days'"
+                trunc_type = 'day'
+            elif timeframe == "4weeks":
+                # Wiki 4 za kalenda zilizopita
+                where_clause += " AND t.created_at >= CURRENT_DATE - INTERVAL '4 weeks'"
+                trunc_type = 'day'
+            elif timeframe == "1year":
+                # Miezi 12 ya kalenda
+                where_clause += " AND t.created_at >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '11 months'"
+                trunc_type = 'month'
+            else:
+                where_clause += " AND t.created_at >= CURRENT_DATE - INTERVAL '6 days'"
+                trunc_type = 'day'
+
+        # 1. Kokotoa Jumla Kuu (Total Aggregate Metrics)
+        cursor.execute(
+            f"SELECT COUNT(*), COALESCE(SUM(t.amount), 0) FROM transactions t {where_clause}", params)
+        total_stats = cursor.fetchone()
+        total_volume = total_stats[0]
+        total_amount = float(total_stats[1])
+
+        # 2. Tengeneza Data ya Grafu kulingana na Vipindi (Intervals) vya Muda
+        cursor.execute(f"""
+            SELECT DATE_TRUNC('{trunc_type}', t.created_at) as period, 
+                   COUNT(*) as vol, 
+                   COALESCE(SUM(t.amount), 0) as amt
+            FROM transactions t
+            {where_clause}
+            GROUP BY period ORDER BY period
+        """, params)
+        series_raw = cursor.fetchall()
+
+        def format_label(dt_obj):
+            if not isinstance(dt_obj, datetime):
+                return str(dt_obj)
+            if timeframe == "24hrs":
+                # Saa ya kalenda (Mfano 00:00, 01:00, 02:00)
+                return dt_obj.strftime("%H:%M")
+            elif timeframe == "1year":
+                return dt_obj.strftime("%b %Y")  # Mwezi (Mfano Jan 2026)
+            else:
+                return dt_obj.strftime("%d %b")  # Siku (Mfano 15 Jul)
+
+        chart_data = [
+            {
+                "time_label": format_label(r[0]),
+                "volume": r[1],
+                "amount": float(r[2])
+            }
+            for r in series_raw
+        ]
+
+        # 3. Washa AI Agent na umpe maelekezo ya mienendo ya muda (per hour/day na jumla kuu)
+        ai_briefing = run_policy_ai_agent(
+            timeframe=timeframe,
+            volume=total_volume,
+            amount=total_amount,
+            chart_data=chart_data
+        )
+
         return {
-            "today_volume": r[0], "today_amount": r[1],
-            "yesterday_volume": r[2], "yesterday_amount": r[3],
-            "agent_explanation": insight
+            "total_volume": total_volume,
+            "total_amount": total_amount,
+            "chart_data": chart_data,
+            "agent_explanation": ai_briefing["explanation"],
+            "agent_recommendation": ai_briefing["recommendation"]
         }
+
     finally:
         cursor.close()
         conn.close()
@@ -241,7 +335,7 @@ def approve_review(review_id: int, officer_id: int):
         # Rekebisha: Hatugusi jedwali la `transactions` kwani halina `status` au `final_label`
         cursor.execute("""
             UPDATE fraud_review_queue
-            SET status='APPROVED', final_label=FALSE, reviewed_by=%s, reviewed_at=CURRENT_TIMESTAMP
+            SET status='NOTFRAUD', final_label=FALSE, reviewed_by=%s, reviewed_at=CURRENT_TIMESTAMP
             WHERE review_id=%s
         """, (officer_id, review_id))
         conn.commit()
@@ -268,7 +362,7 @@ def reject_review(review_id: int, officer_id: int):
         # Rekebisha: Hatugusi jedwali la `transactions` kwani halina `status` au `final_label`
         cursor.execute("""
             UPDATE fraud_review_queue
-            SET status='REJECTED', final_label=TRUE, reviewed_by=%s, reviewed_at=CURRENT_TIMESTAMP
+            SET status='ISFRAUD', final_label=TRUE, reviewed_by=%s, reviewed_at=CURRENT_TIMESTAMP
             WHERE review_id=%s
         """, (officer_id, review_id))
         conn.commit()

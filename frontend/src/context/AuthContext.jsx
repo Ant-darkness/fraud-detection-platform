@@ -14,8 +14,11 @@ export const AuthProvider = ({ children }) => {
   });
 
   const [mustChangePassword, setMustChangePassword] = useState(false);
+  
+  // Kutunza taarifa za muda za login kabla ya kubadili password ya lazima
+  const [tempUser, setTempUser] = useState(null);
 
-  // Kufuatilia usalama wa Session (dakika 5)
+  // Kufuatilia usalama wa Session (dakika 5 za kutofanya kazi)
   useEffect(() => {
     const checkSession = () => {
       if (user) {
@@ -51,26 +54,28 @@ export const AuthProvider = ({ children }) => {
   // --- LIVE LOGIN FUNCTION ---
   const login = async (email, password) => {
     try {
-      // Piga simu kwenda FastAPI Backend!
-      const data = await api.auth.login(email, password);
+      const data = await api.auth.login(email.trim(), password.trim());
       
       const loggedInUser = {
-        officer_id: data.officer_id,
-        full_name: data.full_name,
-        email: data.email,
-        role: data.role,
-        token: data.access_token || data.token
+        officer_id: data.officer.officer_id,
+        full_name: data.officer.full_name,
+        email: email.trim().toLowerCase(),
+        role: data.officer.role,
+        token: data.access_token 
       };
 
-      // Uhifadhi wa token ya JWT kwenye localStorage ukiwa umebaki salama
-      localStorage.setItem('bot_user', JSON.stringify(loggedInUser));
-      setUser(loggedInUser);
-      
-      if (data.must_change_password) {
+      // Uhakiki thabiti wa lazima ya kubadili password
+      const needsChange = data.must_change_password === true || data.mustChangePassword === true;
+
+      if (needsChange) {
         setMustChangePassword(true);
+        setTempUser(loggedInUser); // Mtunze hapa ili tutumie token yake kwenye header ya force change
         return { success: true, mustChangePassword: true };
       } else {
         setMustChangePassword(false);
+        setTempUser(null);
+        localStorage.setItem('bot_user', JSON.stringify(loggedInUser));
+        setUser(loggedInUser);
         updateActivity();
         return { success: true, mustChangePassword: false };
       }
@@ -79,13 +84,20 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // --- FORCE CHANGE PASSWORD (Wakati wa First Login) ---
+  // --- FORCE CHANGE PASSWORD ---
   const changeForcePassword = async (newPassword) => {
     try {
-      // Piga endpoint ya /auth/change-password tukiambatanisha token ya huyu mtu
-      await api.auth.changePassword(newPassword);
+      const tokenToUse = tempUser?.token;
+      if (!tokenToUse) {
+        throw new Error("Kipindi cha muda cha mabadiliko ya nenosiri kimeisha. Tafadhali ingia tena.");
+      }
+
+      // Piga API ya force change ikisindikizwa na Bearer token yake ya muda
+      await api.auth.forceChangePassword(newPassword.trim(), tokenToUse);
+      
+      // Kusafisha data zote za muda baada ya mafanikio ili kumlazimisha mtumiaji alogin upya kwa usalama
       setMustChangePassword(false);
-      updateActivity();
+      setTempUser(null); 
       return true;
     } catch (err) {
       throw new Error(err.message || "Imeshindikana kusasisha nenosiri.");
@@ -94,12 +106,22 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     setUser(null);
+    setTempUser(null);
+    setMustChangePassword(false);
     localStorage.removeItem('bot_user');
     localStorage.removeItem('bot_last_active');
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, mustChangePassword, setMustChangePassword, changeForcePassword, updateActivity }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      login, 
+      logout, 
+      mustChangePassword, 
+      setMustChangePassword, 
+      changeForcePassword, 
+      updateActivity 
+    }}>
       {children}
     </AuthContext.Provider>
   );

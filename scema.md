@@ -185,7 +185,9 @@ CREATE TABLE officers (
 );
 `
 PASSWORD_RESET_TOKENS TABLE
-`CREATE TABLE password_reset_tokens (
+`
+DROP TABLE IF EXISTS password_reset_tokens CASCADE
+CREATE TABLE password_reset_tokens (
     token_id BIGSERIAL PRIMARY KEY,
     officer_id BIGINT NOT NULL,
     token_hash VARCHAR(255) NOT NULL UNIQUE,
@@ -198,7 +200,12 @@ PASSWORD_RESET_TOKENS TABLE
         ON DELETE CASCADE
 );
 
--- Index ya kufanya utafutaji wa token uwe wa haraka sana
+UPDATE officers 
+SET password_hash = 'Admin@123', must_change_password = TRUE 
+WHERE email = 'admin@bot.go.tz';  
+
+
+
 CREATE INDEX idx_reset_token ON password_reset_tokens(token_hash);
 `
 

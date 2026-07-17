@@ -25,10 +25,14 @@ const MetricsReadOnly = ({ showToast }) => {
     fetchMetrics();
   }, []);
 
-  const filteredModels = models.filter(model => 
-    model.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    model.version.toString().includes(searchQuery)
-  );
+  const filteredModels = (models || []).filter(model => {
+    const modelName = model?.name ? model.name.toLowerCase() : '';
+    const modelVersion = model?.version ? model.version.toString().toLowerCase() : '';
+    const search = searchQuery ? searchQuery.toLowerCase() : '';
+  
+    return modelName.includes(search) || modelVersion.includes(search);
+  });
+  
 
   return (
     <div className="space-y-6">

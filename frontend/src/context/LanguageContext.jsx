@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
 // 1. Tafsiri zetu zote za lugha
 const translations = {
@@ -39,7 +39,7 @@ const translations = {
     all: "Zote",
     trend: "Mwenendo wa Utapeli",
     metricsTitle: "AI Leaderboard ya Utendaji",
-    metricsSub: "Vipimo vya ubora wa mifumo ya AI iliyosajiliwa (Hali ya Kusoma Tu)",
+    metricsSub: "Vipimo vya ubora vya mifumo ya AI iliyosajiliwa (Hali ya Kusoma Tu)",
     searchModelPlaceholder: "Tafuta Model...",
     rank: "Nafasi",
     modelName: "Jina la AI Model",
@@ -102,14 +102,13 @@ const translations = {
   }
 };
 
-// 2. Kutengeneza React Context
 const LanguageContext = createContext();
 
-// 3. Provider Component ambayo itafunika App yetu
 export const LanguageProvider = ({ children }) => {
-  // Chaguo la msingi ni Swahili (SW) au jinsi mtumiaji alivyosave mwanzoni
+  // Tunalazimisha kurudi 'SW' ikiwa thamani ya localStorage ni batili (null au undefined)
   const [language, setLanguage] = useState(() => {
-    return localStorage.getItem('bot_lang') || 'SW';
+    const saved = localStorage.getItem('bot_lang');
+    return (saved === 'SW' || saved === 'ENG') ? saved : 'SW';
   });
 
   const toggleLanguage = () => {
@@ -120,9 +119,10 @@ export const LanguageProvider = ({ children }) => {
     });
   };
 
-  // Kazi ya kutafsiri maneno (t function)
+  // Kazi thabiti ya kutafsiri ili kuzuia kucrash kwa mfumo kabisa
   const t = (key) => {
-    return translations[language][key] || key;
+    const currentLang = (language === 'SW' || language === 'ENG') ? language : 'SW';
+    return translations[currentLang]?.[key] ?? key;
   };
 
   return (
@@ -132,7 +132,6 @@ export const LanguageProvider = ({ children }) => {
   );
 };
 
-// 4. Custom Hook ya kurahisisha matumizi ya lugha
 export const useLanguage = () => {
   const context = useContext(LanguageContext);
   if (!context) {

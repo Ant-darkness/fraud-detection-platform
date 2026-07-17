@@ -1,10 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { api } from '../services/api';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  AreaChart,
+  Area
+} from 'recharts';
 
 const Dashboard = ({ showToast }) => {
   const { t } = useLanguage();
-  const [timeframe, setTimeframe] = useState('7days'); // Default kwa API yetu
+  const [timeframe, setTimeframe] = useState('7days');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
   
@@ -19,23 +30,32 @@ const Dashboard = ({ showToast }) => {
   const [distribution, setDistribution] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Kila timeframe au tarehe ikibadilika, vuta data mpya kutoka API
   useEffect(() => {
     const fetchDashboardData = async () => {
       setLoading(true);
       try {
-        // 1. Vuta Summary ya KPI
         const summary = await api.dashboard.getSummary();
-        setStats(summary);
+        if (summary) setStats(summary);
 
-        // 2. Vuta Analytics za chati kulingana na timeframe/date
         const analytics = await api.dashboard.getAnalytics(timeframe, customStart || null, customEnd || null);
-        setTrendData(analytics.trend || [45, 60, 80, 50, 90, 70, 110, 85, 120, 100]); // Fallback kama hakuna data
-        setDistribution(analytics.distribution || [
-          { type: 'TRANSFER', count: '8,421', percentage: 70, color: 'bg-[#D4AF37]' },
-          { type: 'CASH_OUT', count: '2,310', percentage: 20, color: 'bg-red-500' },
-          { type: 'PAYMENT', count: '1,700', percentage: 10, color: 'bg-blue-400' }
-        ]);
+        
+        // 1. Kutayarisha data za mienendo ya Grafu ya kwanza (Trend) kwa usahihi wa kalenda
+        if (analytics?.trend && analytics.trend.length > 0) {
+          const formattedTrend = analytics.trend.map((val) => ({
+            time_label: val.time_label, // Sasa inasoma tarehe au saa rasmi (mfano: 02:00 au 17 Jul)
+            'Miamala ya Shaka': Number(val.count) || 0
+          }));
+          setTrendData(formattedTrend);
+        } else {
+          setTrendData([]);
+        }
+        
+        // 2. Kutayarisha data mpya ya Dynamic Time Distribution
+        if (analytics?.distribution && analytics.distribution.length > 0) {
+          setDistribution(analytics.distribution);
+        } else {
+          setDistribution([]);
+        }
       } catch (error) {
         showToast("Imeshindikana kupakia takwimu za Dashboard.", "error");
       } finally {
@@ -45,6 +65,30 @@ const Dashboard = ({ showToast }) => {
 
     fetchDashboardData();
   }, [timeframe, customStart, customEnd]);
+
+  const getDistributionTitle = () => {
+    switch (timeframe) {
+      case '24hrs': return 'Hourly Fraud Distribution (Saa kwa Saa)';
+      case '7days': return 'Daily Fraud Distribution (Siku kwa Siku)';
+      case '4weeks': return 'Weekly Fraud Distribution (Wiki kwa Wiki)';
+      case '1year': return 'Monthly Fraud Distribution (Miezi 12)';
+      default: return 'Time-Series Fraud Distribution';
+    }
+  };
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-[#020205]/95 border border-white/10 p-3 rounded-xl backdrop-blur-md shadow-2xl">
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{label || payload[0].name}</p>
+          <p className="text-sm font-black text-white">
+            {payload[0].name}: <span className="text-[#D4AF37]">{payload[0].value.toLocaleString()}</span>
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
 
   if (loading) {
     return (
@@ -57,16 +101,21 @@ const Dashboard = ({ showToast }) => {
   return (
     <div className="space-y-8 animate-fadeIn">
       {/* Timeframe Filter Buttons */}
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-md">
+      <div className="bg-white/5 p-4 rounded-3xl border border-white/10 backdrop-blur-md relative overflow-hidden flex flex-wrap items-center justify-between gap-4">
+        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
         <div className="flex gap-2">
           {['24hrs', '7days', '4weeks', '1year'].map((tf) => (
             <button
               key={tf}
-              onClick={() => setTimeframe(tf)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                timeframe === tf
-                  ? 'bg-white/15 text-[#D4AF37] border border-[#D4AF37]/30'
-                  : 'text-gray-400 hover:text-white bg-transparent'
+              onClick={() => {
+                setCustomStart('');
+                setCustomEnd('');
+                setTimeframe(tf);
+              }}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
+                timeframe === tf && !customStart
+                  ? 'bg-[#D4AF37]/10 text-[#D4AF37] border border-[#D4AF37]/30 shadow-[0_0_15px_rgba(212,175,55,0.1)]'
+                  : 'text-gray-400 hover:text-white hover:bg-white/5 bg-transparent border border-transparent'
               }`}
             >
               {tf.toUpperCase()}
@@ -80,14 +129,14 @@ const Dashboard = ({ showToast }) => {
             type="date"
             value={customStart}
             onChange={(e) => setCustomStart(e.target.value)}
-            className="bg-black/40 border border-white/10 text-white p-2 rounded-xl focus:border-[#D4AF37] outline-none"
+            className="bg-black/40 border border-white/10 text-white p-2 rounded-xl focus:border-[#D4AF37] outline-none transition-all"
           />
-          <span className="text-gray-500">to</span>
+          <span className="text-gray-500 font-bold">ZIKIWA</span>
           <input
             type="date"
             value={customEnd}
             onChange={(e) => setCustomEnd(e.target.value)}
-            className="bg-black/40 border border-white/10 text-white p-2 rounded-xl focus:border-[#D4AF37] outline-none"
+            className="bg-black/40 border border-white/10 text-white p-2 rounded-xl focus:border-[#D4AF37] outline-none transition-all"
           />
         </div>
       </div>
@@ -95,61 +144,101 @@ const Dashboard = ({ showToast }) => {
       {/* KPI Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         {[
-          { key: 'totalTransactions', val: stats.total_transactions.toLocaleString(), col: 'text-blue-400' },
-          { key: 'predictedFraud', val: stats.predicted_frauds.toLocaleString(), col: 'text-amber-400' },
-          { key: 'pendingReviews', val: stats.pending_reviews, col: 'text-purple-400' },
-          { key: 'confirmedFraud', val: stats.confirmed_frauds.toLocaleString(), col: 'text-red-500' },
-          { key: 'fraudRate', val: `${stats.fraud_rate}%`, col: 'text-rose-400' }
+          { key: 'totalTransactions', val: Number(stats.total_transactions)?.toLocaleString() || 0, col: 'text-blue-400', border: 'via-blue-500/30' },
+          { key: 'predictedFraud', val: Number(stats.predicted_frauds)?.toLocaleString() || 0, col: 'text-amber-400', border: 'via-[#D4AF37]/30' },
+          { key: 'pendingReviews', val: Number(stats.pending_reviews)?.toLocaleString() || 0, col: 'text-purple-400', border: 'via-purple-500/30' },
+          { key: 'confirmedFraud', val: Number(stats.confirmed_frauds)?.toLocaleString() || 0, col: 'text-red-500', border: 'via-red-500/30' },
+          { key: 'fraudRate', val: `${stats.fraud_rate || 0}%`, col: 'text-rose-400', border: 'via-rose-500/30' }
         ].map((item, idx) => (
-          <div key={idx} className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-md relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#D4AF37]/50 to-transparent"></div>
-            <div className="text-gray-400 text-xs font-semibold uppercase">{t(item.key)}</div>
-            <div className={`text-2xl font-black mt-3 ${item.col}`}>{item.val}</div>
+          <div key={idx} className="bg-white/5 border border-white/10 rounded-2xl p-5 backdrop-blur-md relative overflow-hidden">
+            <div className={`absolute top-0 left-0 w-full h-[1.5px] bg-gradient-to-r from-transparent ${item.border} to-transparent`}></div>
+            <div className="text-gray-400 text-[10px] font-black uppercase tracking-wider">{t(item.key)}</div>
+            <div className={`text-2xl font-black mt-3 tracking-tight ${item.col}`}>{item.val}</div>
           </div>
         ))}
       </div>
 
-      {/* Graphs */}
+      {/* Graphs Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Trend Bar Graph */}
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-md">
-          <h3 className="text-md font-bold text-white mb-6 flex items-center gap-2">
-            📊 {t('trend')} ({timeframe.toUpperCase()})
+        
+        {/* Graph 1: Mienendo ya Udanganyifu (Trend Chart) */}
+        <div className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-md relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#FF4E6E]/30 to-transparent"></div>
+          <h3 className="text-sm font-black text-white tracking-widest uppercase mb-6 flex items-center gap-2">
+            <span>📊</span> {t('trend')} ({timeframe.toUpperCase()})
           </h3>
-          <div className="h-64 flex items-end gap-3 justify-between pt-6 border-b border-white/10">
-            {trendData.map((val, idx) => (
-              <div key={idx} className="flex-1 flex flex-col items-center gap-2 group">
-                <div 
-                  style={{ height: `${Math.min(val * 1.5, 200)}px` }} 
-                  className="w-full bg-gradient-to-t from-red-600/30 to-red-500 rounded-t-lg transition-all duration-300 group-hover:from-red-500 group-hover:to-[#D4AF37] relative"
-                >
-                  <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black border border-white/20 text-[10px] text-white px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                    {val}
-                  </span>
-                </div>
-                <span className="text-[10px] text-gray-500">Day {idx+1}</span>
-              </div>
-            ))}
-          </div>
+          
+          {trendData.length > 0 ? (
+            <div className="h-72 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                  {/* Sasa hapa inasoma "time_label" iliyotoka backend badala ya name ya mikono */}
+                  <XAxis dataKey="time_label" stroke="#6b7280" fontSize={10} tickLine={false} />
+                  <YAxis stroke="#6b7280" fontSize={10} tickLine={false} axisLine={false} />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.02)' }} />
+                  <Bar 
+                    dataKey="Miamala ya Shaka" 
+                    fill="#FF4E6E" 
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={40}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="h-72 flex items-center justify-center text-gray-500 text-sm">
+              Hakuna data ya mwenendo iliyopatikana kwa kipindi hiki.
+            </div>
+          )}
         </div>
 
-        {/* Fraud distribution visual list */}
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-md">
-          <h3 className="text-md font-bold text-white mb-6">🔄 Distribution status</h3>
-          <div className="space-y-4">
-            {distribution.map((item, idx) => (
-              <div key={idx} className="space-y-1">
-                <div className="flex justify-between text-xs text-gray-300">
-                  <span className="font-bold">{item.type}</span>
-                  <span>{item.count} miamala ({item.percentage}%)</span>
-                </div>
-                <div className="w-full bg-white/10 h-2 rounded-full overflow-hidden">
-                  <div className={`h-full ${item.color || 'bg-[#D4AF37]'}`} style={{ width: `${item.percentage}%` }}></div>
-                </div>
-              </div>
-            ))}
-          </div>
+        {/* Graph 2: Advanced Histogram/Area Time Distribution */}
+        <div className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-md relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00F0FF]/30 to-transparent"></div>
+          <h3 className="text-sm font-black text-white tracking-widest uppercase mb-6 flex items-center gap-2">
+            <span>📈</span> {getDistributionTitle()}
+          </h3>
+          
+          {distribution.length > 0 ? (
+            <div className="h-72 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={distribution} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="fraudColor" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#00F0FF" stopOpacity={0.4}/>
+                      <stop offset="95%" stopColor="#00F0FF" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                  <XAxis 
+                    dataKey="time_label" 
+                    stroke="#6b7280" 
+                    fontSize={10} 
+                    tickLine={false}
+                    dy={10}
+                  />
+                  <YAxis stroke="#6b7280" fontSize={10} tickLine={false} axisLine={false} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area 
+                    type="monotone" 
+                    dataKey="count" 
+                    name="Idadi ya Utapeli"
+                    stroke="#00F0FF" 
+                    strokeWidth={2}
+                    fillOpacity={1} 
+                    fill="url(#fraudColor)" 
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="h-72 flex items-center justify-center text-gray-500 text-sm">
+              Hakuna mgawanyo wa kihistoria (Time Distribution) uliopatikana kwa sasa.
+            </div>
+          )}
         </div>
+
       </div>
     </div>
   );

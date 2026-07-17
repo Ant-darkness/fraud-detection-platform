@@ -1,13 +1,19 @@
 from backend.app.services.officer_service import get_officer_by_email, update_last_login
 from backend.app.core.security import verify_password, create_access_token
 
+
 def login(email: str, password: str):
-    officer = get_officer_by_email(email)
+    # Hakikisha email inafanyiwa strip
+    officer = get_officer_by_email(email.strip())
     if officer is None:
         raise Exception("Invalid credentials")
     if not officer["is_active"]:
         raise Exception("Account disabled")
-    if not verify_password(password, officer["password_hash"]):
+
+    # Usafi wa password kabla ya uhakiki
+    password_clean = password.strip() if password else ""
+
+    if not verify_password(password_clean, officer["password_hash"]):
         raise Exception("Invalid credentials")
 
     update_last_login(officer["officer_id"])

@@ -10,6 +10,7 @@ import MetricsReadOnly from './pages/MetricsReadOnly';
 import OfficersAdmin from './pages/OfficersAdmin';
 import Transactions from './pages/Transactions';
 import Login from './pages/Login';
+import ChangePassword from './pages/ChangePassword'; // Hakikisha unayo hii page au component
 
 const App = () => {
   const { user } = useAuth();
@@ -23,7 +24,7 @@ const App = () => {
     setTimeout(() => setToast(null), 4000); // Inafuta baada ya sekunde 4
   };
 
-  // Kama mtumiaji hajalogin, tunaonyesha Login na tunampitishia showToast prop
+  // Kama mtumiaji hajalogin, tunaonyesha Login
   if (!user) {
     return <Login showToast={showToast} />;
   }
@@ -44,13 +45,14 @@ const App = () => {
           {activeTab === 'reviews' && <FraudReviews showToast={showToast} />}
           {activeTab === 'volume' && <VolumeAnalysis showToast={showToast} />}
           {activeTab === 'models' && <ModelsRegistry showToast={showToast} />}
-          {activeTab === 'Metrics' && <MetricsReadOnly showToast={showToast} />}
+          {activeTab === 'metrics' && <MetricsReadOnly showToast={showToast} />}
           {activeTab === 'transactions' && <Transactions showToast={showToast} />}
           {activeTab === 'officers' && <OfficersAdmin showToast={showToast} />}
+          {activeTab === 'change-password' && <ChangePassword showToast={showToast} />}
         </main>
       </div>
 
-      {/* Global UI ya Toast (Inafanya kazi popote kuanzia login hadi ndani ya dash) */}
+      {/* Global UI ya Toast */}
       {toast && (
         <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-4 rounded-2xl border backdrop-blur-xl shadow-2xl animate-slideIn ${
           toast.type === 'success' 

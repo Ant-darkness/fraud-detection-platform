@@ -13,9 +13,31 @@ const ModelsRegistry = ({ showToast }) => {
     setLoading(true);
     try {
       const data = await api.models.getAll();
-      setModels(data);
+      
+      // Ikitokea Backend inarudisha raw list of lists badala ya dictionaries:
+      if (Array.isArray(data)) {
+        const mappedModels = data.map(item => {
+          if (Array.isArray(item)) {
+            // Mechi ya index kulingana na SELECT ya query ya backend:
+            // model_id[0], model_name[1], model_version[2], model_description[3], dataset_size[4], activation_status[5], is_active[6]
+            return {
+              model_id: item[0],
+              model_name: item[1],
+              model_version: item[2],
+              model_description: item[3],
+              dataset_size: item[4],
+              activation_status: item[5],
+              is_active: item[6]
+            };
+          }
+          return item; // tayari ni dict
+        });
+        setModels(mappedModels);
+      } else {
+        setModels([]);
+      }
     } catch (error) {
-      showToast("Imeshindikana kupata AI Models", "error");
+      showToast("Imeshindikana kupata AI Models kutoka kwenye Registry.", "error");
     } finally {
       setLoading(false);
     }
@@ -30,7 +52,7 @@ const ModelsRegistry = ({ showToast }) => {
       showToast("Hitilafu: ID ya model haipatikani!", "error");
       return;
     }
-    setActiveDialog({ type, modelId });
+    setActiveDialog({ type, modelId: Number(modelId) });
   };
 
   const executeAction = async () => {
@@ -40,17 +62,15 @@ const ModelsRegistry = ({ showToast }) => {
         await api.models.activate(modelId);
         showToast("Model imefunguliwa na kuwa active kwenye production!", "success");
       } else if (type === 'deactivate') {
-        await api.models.reject(modelId); // deactivation inafanyika kwa kuikataa/disable
-        showToast("Model imeondolewa kwenye uzalishaji.", "success");
+        await api.models.reject(modelId);
+        showToast("Model imeondolewa kwenye uzalishaji kwa ku-reject.", "success");
       } else if (type === 'delete') {
         await api.models.delete(modelId);
         showToast("Model imefutwa kabisa kwenye Registry.", "success");
       }
-      
-      // Reload list kutoka server
-      await fetchModels();
+      await fetchModels(); // refresh
     } catch (error) {
-      showToast(`Imeshindikana kutekeleza operesheni ya ${type}.`, "error");
+      showToast(error.message || `Imeshindikana kutekeleza operesheni ya ${type}. Hakikisha wewe ni Admin.`, "error");
     } finally {
       setActiveDialog(null);
     }
@@ -66,11 +86,10 @@ const ModelsRegistry = ({ showToast }) => {
 
   return (
     <div className="space-y-8 animate-fadeIn">
-      {/* Metrics Leaderboard Card */}
       <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-md">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-lg font-bold text-[#D4AF37] uppercase tracking-wider">
-            🏆 AI Model Performance Leaderboard
+            🏆 AI Model Registry Manager
           </h3>
           <button 
             onClick={async () => {
@@ -78,13 +97,13 @@ const ModelsRegistry = ({ showToast }) => {
                 await api.models.reload();
                 showToast("Models zote zimepakiwa upya kwenye RAM!", "success");
                 fetchModels();
-              } catch {
+              } catch (err) {
                 showToast("Imeshindikana kureload model files.", "error");
               }
             }}
             className="px-4 py-2 bg-white/10 hover:bg-white/15 text-white font-bold rounded-xl text-xs transition cursor-pointer"
           >
-            🔄 Reload Models
+            🔄 Reload Models in RAM
           </button>
         </div>
         <div className="overflow-x-auto">
@@ -99,11 +118,10 @@ const ModelsRegistry = ({ showToast }) => {
             </thead>
             <tbody className="text-sm text-gray-200 divide-y divide-white/5">
               {models.map((m) => {
-                // Kubaini ID ya model bila kujali kama ni `model_id` au `id` kutoka API
-                const currentModelId = m.model_id || m.id;
-                const modelName = m.model_name || m.name;
-                const modelVersion = m.model_version || m.version;
-                const isActive = m.is_active !== undefined ? m.is_active : m.active;
+                const currentModelId = m.model_id;
+                const modelName = m.model_name;
+                const modelVersion = m.model_version;
+                const isActive = m.is_active;
 
                 return (
                   <tr key={currentModelId} className="hover:bg-white/5 transition-all">
@@ -179,4 +197,3 @@ const ModelsRegistry = ({ showToast }) => {
 };
 
 export default ModelsRegistry;
-s

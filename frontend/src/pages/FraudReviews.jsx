@@ -7,15 +7,14 @@ const FraudReviews = ({ showToast }) => {
   const { t } = useLanguage();
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeDialog, setActiveDialog] = useState(null); // { type, reviewId }
+  const [activeDialog, setActiveDialog] = useState(null); 
   const [inspectedTx, setInspectedTx] = useState(null);
 
-  // Vuta miamala ya Fraud Reviews inayohitaji kufanyiwa kazi
   const fetchPendingReviews = async () => {
     setLoading(true);
     try {
       const data = await api.reviews.getPending();
-      setReviews(data);
+      setReviews(Array.isArray(data) ? data : []);
     } catch (error) {
       showToast("Imeshindikana kupata miamala ya ukaguzi.", "error");
     } finally {
@@ -28,10 +27,13 @@ const FraudReviews = ({ showToast }) => {
   }, []);
 
   const handleAction = (type, reviewId) => {
-    setActiveDialog({ type, reviewId });
+    if (!reviewId) {
+      showToast("ID ya review haipo!", "error");
+      return;
+    }
+    setActiveDialog({ type, reviewId: Number(reviewId) });
   };
 
-  // Kufanya mabadiliko ya maamuzi na kuitatua kwenye backend
   const confirmAction = async () => {
     const { type, reviewId } = activeDialog;
     try {
@@ -42,13 +44,13 @@ const FraudReviews = ({ showToast }) => {
         await api.reviews.reject(reviewId);
         showToast("Muamala umetiwa alama ya utapeli na kuzuiliwa.", "success");
       }
-      // Reload or filter out the processed review locally
-      setReviews(reviews.filter(r => r.review_id !== reviewId));
+      
+      setReviews(prevReviews => prevReviews.filter(r => r.review_id !== reviewId));
       if (inspectedTx && inspectedTx.review_id === reviewId) {
-        setInspectedTx(null); // Exit detail screen if they made action inside detail view
+        setInspectedTx(null); 
       }
     } catch (error) {
-      showToast("Imeshindikana kukamilisha uamuzi wako kwenye mfumo.", "error");
+      showToast(error.message || "Imeshindikana kukamilisha uamuzi wako kwenye mfumo.", "error");
     } finally {
       setActiveDialog(null);
     }
@@ -65,9 +67,11 @@ const FraudReviews = ({ showToast }) => {
   return (
     <div className="space-y-6 animate-fadeIn">
       {inspectedTx ? (
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-8 backdrop-blur-xl space-y-6">
+        <div className="glassmorphism rounded-2xl p-8 space-y-6 relative">
+          <div className="absolute top-0 left-0 w-full h-[1.5px] bg-gradient-to-r from-transparent via-red-500/40 to-transparent"></div>
+          
           <div className="flex justify-between items-center border-b border-white/10 pb-4">
-            <h3 className="text-xl font-black text-[#D4AF37]">
+            <h3 className="text-xl font-black text-[#D4AF37] tracking-wide">
               🔍 TRANSACTION AUDITING DETAILED REPORT
             </h3>
             <button 
@@ -78,54 +82,92 @@ const FraudReviews = ({ showToast }) => {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm">
+          {/* TAARIFA ZOTE ZA MUAMALA KWA KINA (FULL DETAILS) */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+            
+            {/* Sehemu ya Kwanza: Core Info */}
             <div className="space-y-4">
+              <h4 className="text-xs font-black uppercase text-gray-400 tracking-wider">Misingi ya Muamala</h4>
               <div className="p-4 bg-black/40 rounded-xl border border-white/5">
-                <span className="text-xs text-gray-500 block">ID ya Muamala (Transaction ID)</span>
-                <span className="text-lg font-bold text-white">#{inspectedTx.transaction_id}</span>
+                <span className="text-xs text-gray-500 block">ID ya Muamala</span>
+                <span className="text-lg font-mono font-bold text-white">#{inspectedTx.transaction_id || inspectedTx.id}</span>
               </div>
               <div className="p-4 bg-black/40 rounded-xl border border-white/5">
                 <span className="text-xs text-gray-500 block">Aina ya Muamala (Type)</span>
-                <span className="text-lg font-bold text-blue-400">{inspectedTx.type}</span>
+                <span className="text-lg font-bold text-blue-400 uppercase">{inspectedTx.type || "N/A"}</span>
               </div>
               <div className="p-4 bg-black/40 rounded-xl border border-white/5">
-                <span className="text-xs text-gray-500 block">Kiasi (Amount)</span>
-                <span className="text-xl font-bold text-green-400">TZS {inspectedTx.amount.toLocaleString()}</span>
+                <span className="text-xs text-gray-500 block">Kiasi Kilichotumwa (Amount)</span>
+                <span className="text-xl font-bold text-green-400">TZS {Number(inspectedTx.amount).toLocaleString()}</span>
               </div>
             </div>
 
+            {/* Sehemu ya Pili: Origination (Mtumaji) Details */}
             <div className="space-y-4">
+              <h4 className="text-xs font-black uppercase text-gray-400 tracking-wider">Taarifa za Mtumaji (Origination)</h4>
               <div className="p-4 bg-black/40 rounded-xl border border-white/5">
-                <span className="text-xs text-gray-500 block">Mtumaji (Origination Acc)</span>
-                <span className="text-lg font-bold text-gray-300">{inspectedTx.nameOrig || "HAIJAFAFANULIWA"}</span>
+                <span className="text-xs text-gray-500 block">Akaunti ya Mtumaji (Orig)</span>
+                <span className="text-sm font-mono font-bold text-gray-300 truncate block">{inspectedTx.nameOrig || "HAIJAFAFANULIWA"}</span>
               </div>
               <div className="p-4 bg-black/40 rounded-xl border border-white/5">
-                <span className="text-xs text-gray-500 block">Mpokeaji (Destination Acc)</span>
-                <span className="text-lg font-bold text-gray-300">{inspectedTx.nameDest || "HAIJAFAFANULIWA"}</span>
+                <span className="text-xs text-gray-500 block">Salio la Awali (Old Balance Orig)</span>
+                <span className="text-sm font-bold text-gray-300">TZS {inspectedTx.oldbalanceOrg !== undefined ? Number(inspectedTx.oldbalanceOrg).toLocaleString() : "0"}</span>
               </div>
-              <div className="p-4 bg-[#D4AF37]/10 rounded-xl border border-[#D4AF37]/30">
-                <span className="text-xs text-[#D4AF37] block">Uwezekano wa Utapeli (Fraud Probability)</span>
-                <span className="text-xl font-black text-red-500">{(inspectedTx.fraud_probability * 100).toFixed(2)}%</span>
+              <div className="p-4 bg-black/40 rounded-xl border border-white/5">
+                <span className="text-xs text-gray-500 block">Salio Jipya (New Balance Orig)</span>
+                <span className="text-sm font-bold text-gray-300">TZS {inspectedTx.newbalanceOrig !== undefined ? Number(inspectedTx.newbalanceOrig).toLocaleString() : "0"}</span>
               </div>
             </div>
+
+            {/* Sehemu ya Tatu: Destination (Mpokeaji) & Risk Matrix */}
+            <div className="space-y-4">
+              <h4 className="text-xs font-black uppercase text-gray-400 tracking-wider">Taarifa za Mpokeaji & AI Risk</h4>
+              <div className="p-4 bg-black/40 rounded-xl border border-white/5">
+                <span className="text-xs text-gray-500 block">Akaunti ya Mpokeaji (Dest)</span>
+                <span className="text-sm font-mono font-bold text-gray-300 truncate block">{inspectedTx.nameDest || "HAIJAFAFANULIWA"}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-3 bg-black/40 rounded-xl border border-white/5 text-xs">
+                  <span className="text-gray-500 block">Old Bal Dest</span>
+                  <span className="text-gray-300 font-bold">TZS {inspectedTx.oldbalanceDest !== undefined ? Number(inspectedTx.oldbalanceDest).toLocaleString() : "0"}</span>
+                </div>
+                <div className="p-3 bg-black/40 rounded-xl border border-white/5 text-xs">
+                  <span className="text-gray-500 block">New Bal Dest</span>
+                  <span className="text-gray-300 font-bold">TZS {inspectedTx.newbalanceDest !== undefined ? Number(inspectedTx.newbalanceDest).toLocaleString() : "0"}</span>
+                </div>
+              </div>
+              <div className="p-4 bg-red-500/10 rounded-xl border border-red-500/30">
+                <span className="text-xs text-[#D4AF37] font-bold block">Uwezekano wa Utapeli (Fraud Probability)</span>
+                <span className="text-xl font-black text-red-500">{(Number(inspectedTx.fraud_probability || 0) * 100).toFixed(2)}% Risk Score</span>
+              </div>
+            </div>
+
           </div>
+
+          {/* Maelezo ya Ziada ya Mfumo (Kama yapo) */}
+          {inspectedTx.step !== undefined && (
+            <div className="text-[11px] font-mono text-gray-500 text-right">
+              Simulation Global Step Interval: {inspectedTx.step}
+            </div>
+          )}
+
           <div className="flex justify-end gap-4 pt-4 border-t border-white/10">
             <button 
               onClick={() => handleAction('approve', inspectedTx.review_id)}
-              className="px-6 py-3 rounded-xl bg-green-500/25 border border-green-500/40 text-green-400 font-bold hover:bg-green-600 hover:text-white transition cursor-pointer"
+              className="px-6 py-3 rounded-xl bg-green-500/25 border border-green-500/40 text-green-400 font-bold hover:bg-green-600 hover:text-white transition cursor-pointer text-xs uppercase"
             >
               Confirm Legal (Clean)
             </button>
             <button 
               onClick={() => handleAction('reject', inspectedTx.review_id)}
-              className="px-6 py-3 rounded-xl bg-red-500/25 border border-red-500/40 text-red-400 font-bold hover:bg-red-600 hover:text-white transition cursor-pointer"
+              className="px-6 py-3 rounded-xl bg-red-500/25 border border-red-500/40 text-red-400 font-bold hover:bg-red-600 hover:text-white transition cursor-pointer text-xs uppercase"
             >
               Flag Fraud (Block)
             </button>
           </div>
         </div>
       ) : (
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-md overflow-hidden">
+        <div className="glassmorphism rounded-2xl p-6 overflow-hidden">
           <h3 className="text-lg font-bold text-white mb-6">🛡️ {t('pendingReviews')}</h3>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
@@ -141,12 +183,12 @@ const FraudReviews = ({ showToast }) => {
               <tbody className="divide-y divide-white/5 text-sm text-gray-200">
                 {reviews.map((r) => (
                   <tr key={r.review_id} className="hover:bg-white/5 transition-colors">
-                    <td className="py-4 px-6 font-mono font-bold text-white">#{r.transaction_id}</td>
-                    <td className="py-4 px-6">{r.type}</td>
-                    <td className="py-4 px-6 text-green-400 font-bold">TZS {r.amount.toLocaleString()}</td>
+                    <td className="py-4 px-6 font-mono font-bold text-white">#{r.transaction_id || r.id}</td>
+                    <td className="py-4 px-6 uppercase text-xs font-semibold text-blue-400">{r.type || "TRANSFER"}</td>
+                    <td className="py-4 px-6 text-green-400 font-bold">TZS {Number(r.amount).toLocaleString()}</td>
                     <td className="py-4 px-6">
                       <span className="bg-red-500/15 border border-red-500/30 text-red-400 px-2 py-1 rounded-lg text-xs font-black">
-                        {(r.fraud_probability * 100).toFixed(1)}% Risk
+                        {(Number(r.fraud_probability || 0) * 100).toFixed(1)}% Risk
                       </span>
                     </td>
                     <td className="py-4 px-6">
@@ -192,7 +234,7 @@ const FraudReviews = ({ showToast }) => {
         message={
           activeDialog?.type === 'approve' 
             ? 'Una uhakika unataka kuidhinisha muamala huu kuwa safi? Hatua hii itaruhusu fedha kuendelea.' 
-            : 'Una uhakika unataka kukamilisha hatua hii na kuuhifadhi muamala huu kama wa kitapeli (fraud) kwa usalama wa benki?'
+            : 'Una uhakika unataka kuuzuia muamala huu na kuuainisha kama wa utapeli (fraud) kwa usalama wa benki?'
         }
         onConfirm={confirmAction}
         onCancel={() => setActiveDialog(null)}

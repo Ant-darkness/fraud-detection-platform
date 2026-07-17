@@ -1,22 +1,26 @@
 const BASE_URL = "http://localhost:8000";
 
 // Kazi ya usaidizi kupata Headers zote zikiwa na Authorization Token
-const getHeaders = () => {
-  const savedUser = localStorage.getItem('bot_user');
+// MAREKEBISHO: Inakubali 'customToken' wakati mtumiaji bado hajawekwa kwenye localStorage
+const getHeaders = (customToken = null) => {
   const headers = {
     'Content-Type': 'application/json',
   };
-  if (savedUser) {
-    const { token } = JSON.parse(savedUser);
-    headers['Authorization'] = `Bearer ${token}`;
+
+  if (customToken) {
+    headers['Authorization'] = `Bearer ${customToken}`;
+  } else {
+    const savedUser = localStorage.getItem('bot_user');
+    if (savedUser) {
+      const { token } = JSON.parse(savedUser);
+      headers['Authorization'] = `Bearer ${token}`;
+    }
   }
   return headers;
 };
 
-// Kazi ya usaidizi ya kushughulikia majibu na makosa ya API (Error Handling)
 const handleResponse = async (response) => {
   if (!response.ok) {
-    // Jaribu kusoma maelezo ya kosa kutoka FastAPI (detail)
     try {
       const errorData = await response.json();
       throw new Error(errorData.detail || "Hitilafu imetokea kwenye server.");
@@ -38,14 +42,34 @@ export const api = {
       });
       return handleResponse(response);
     },
-    changePassword: async (newPassword) => {
+
+    // 1. Mabadiliko ya kawaida ya profile (Yanauliza old_password)
+    changePassword: async ({ old_password, new_password }) => {
       const response = await fetch(`${BASE_URL}/auth/change-password`, {
         method: 'POST',
         headers: getHeaders(),
-        body: JSON.stringify({ new_password: newPassword }),
+        body: JSON.stringify({ 
+          old_password: old_password, 
+          new_password: new_password 
+        }),
       });
       return handleResponse(response);
     },
+
+    // 2. Mabadiliko ya lazima ya Login ya Kwanza (Haitaji old_password)
+    forceChangePassword: async (newPassword, tempToken) => {
+      if (!tempToken) throw new Error("Hitilafu ya Usalama: Token ya muda haipatikani!");
+      
+      const response = await fetch(`${BASE_URL}/auth/force-change-password`, {
+        method: 'POST',
+        headers: getHeaders(tempToken), // Pitisha token ya muda hapa
+        body: JSON.stringify({ 
+          new_password: newPassword 
+        }),
+      });
+      return handleResponse(response);
+    },
+
     forgotPassword: async (email) => {
       const response = await fetch(`${BASE_URL}/auth/forgot-password`, {
         method: 'POST',
@@ -54,6 +78,7 @@ export const api = {
       });
       return handleResponse(response);
     },
+
     resetPasswordConfirm: async (token, newPassword) => {
       const response = await fetch(`${BASE_URL}/auth/reset-password-confirm`, {
         method: 'POST',
@@ -65,24 +90,38 @@ export const api = {
   },
 
   // --- DASHBOARD & ANALYTICS ---
-  dashboard: {
-    getSummary: async () => {
-      const response = await fetch(`${BASE_URL}/dashboard/summary`, { headers: getHeaders() });
-      return handleResponse(response);
+    dashboard: {
+        getSummary: async () => {
+            const response = await fetch(`${BASE_URL}/dashboard/summary`, { headers: getHeaders() });
+            return handleResponse(response);
+        },
+        getAnalytics: async (timeframe = '7days', startDate = null, endDate = null) => {
+            let url = `${BASE_URL}/dashboard/analytics?timeframe=${timeframe}`;
+            if (startDate && endDate) {
+                url += `&start_date=${startDate}&end_date=${endDate}`;
+            }
+            const response = await fetch(url, { headers: getHeaders() });
+            return handleResponse(response);
+        },
+        getVolumeComparison: async (params = {}) => {
+            const { timeframe, custom_start, custom_end } = params;
+        
+            // Kutengeneza query string kwa njia salama
+            const urlParams = new URLSearchParams();
+            if (timeframe) urlParams.append('timeframe', timeframe);
+            if (custom_start) urlParams.append('custom_start', custom_start);
+            if (custom_end) urlParams.append('custom_end', custom_end);
+        
+            const queryString = urlParams.toString();
+            const finalUrl = queryString
+                ? `${BASE_URL}/dashboard/volume-comparison?${queryString}`
+                : `${BASE_URL}/dashboard/volume-comparison`;
+      
+            const response = await fetch(finalUrl, { headers: getHeaders() });
+            return handleResponse(response);
+        }
     },
-    getAnalytics: async (timeframe = '7days', startDate = null, endDate = null) => {
-      let url = `${BASE_URL}/dashboard/analytics?timeframe=${timeframe}`;
-      if (startDate && endDate) {
-        url += `&start_date=${startDate}&end_date=${endDate}`;
-      }
-      const response = await fetch(url, { headers: getHeaders() });
-      return handleResponse(response);
-    },
-    getVolumeComparison: async () => {
-      const response = await fetch(`${BASE_URL}/dashboard/volume-comparison`, { headers: getHeaders() });
-      return handleResponse(response);
-    }
-  },
+      
 
   // --- AI MODELS REGISTRY ---
   models: {

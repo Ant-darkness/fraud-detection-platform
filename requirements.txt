@@ -36,3 +36,5 @@ seaborn
 pytest
 
 gunicorn
+
+watchdog

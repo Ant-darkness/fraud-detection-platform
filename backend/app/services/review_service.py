@@ -1,24 +1,33 @@
 from fastapi import HTTPException
 from backend.app.database.connection import get_connection
 
+
 def get_pending_reviews():
     conn = get_connection()
     try:
         cursor = conn.cursor()
         cursor.execute("""
             SELECT q.review_id, q.transaction_id, q.fraud_probability, q.status,
-                   t.amount, t.nameOrig, t.nameDest, t.type
+                   t.amount, t.nameOrig, t.nameDest, t.type, t.step,
+                   t.oldbalanceOrg, t.newbalanceOrig, t.oldbalanceDest, t.newbalanceDest
             FROM fraud_review_queue q
             JOIN transactions t ON q.transaction_id = t.transaction_id
             WHERE q.status='PENDING'
+            ORDER BY q.review_id DESC
         """)
         rows = cursor.fetchall()
-        columns = ["review_id", "transaction_id", "fraud_probability", "status",
-                   "amount", "nameOrig", "nameDest", "type"]
+
+        # Hakikisha majina ya nguzo hapa yanaendana sawia na yaliyopo juu kwenye SELECT
+        columns = [
+            "review_id", "transaction_id", "fraud_probability", "status",
+            "amount", "nameOrig", "nameDest", "type", "step",
+            "oldbalanceOrg", "newbalanceOrig", "oldbalanceDest", "newbalanceDest"
+        ]
         return [dict(zip(columns, row)) for row in rows]
     finally:
         cursor.close()
         conn.close()
+
 
 def approve_review(review_id: int, officer_id: int):
     conn = get_connection()

@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
 
-// 1. Tafsiri zetu zote za lugha
 const translations = {
   SW: {
     dashboard: "Eneo la Kazi",
@@ -49,7 +48,45 @@ const translations = {
     accuracyText: "Accuracy",
     bestBadge: "Bora Zaidi",
     loadingMetrics: "Inapakia vipimo vya mifano...",
-    noModelsFound: "Hakuna model yoyote iliyopatikana."
+    noModelsFound: "Hakuna model yoyote iliyopatikana.",
+    
+    // NYONGEZA MPYA ZA KITAKWIMU NA TRANSACTIONAL
+    txTitle: "Miamala Halisi (Live Streaming)",
+    txSub: "Ufuatiliaji wa kina wa salio la asili, salio jipya na mtiririko wa fedha katika mifumo ya makazi.",
+    txTotal: "Jumla",
+    txItems: "Miamala",
+    txTimeOrStep: "Muda / Hatua",
+    txType: "Aina (Type)",
+    txAmount: "Kiasi (Amount)",
+    txOldOrig: "Salio la Mwanzo (Orig)",
+    txNewOrig: "Salio Jipya (Orig)",
+    txOldDest: "Salio la Mwanzo (Dest)",
+    txNewDest: "Salio Jipya (Dest)",
+    txEmpty: "Hakuna miamala halisi iliyoingia hivi sasa kwenye database yetu.",
+    txStepLabel: "Hatua",
+    pagePrev: "◀ Nyuma",
+    pageNext: "Mbele ▶",
+    pageOf: "kati ya",
+    pageLabel: "Ukurasa",
+    btnMaximize: "🖥️ Kuza Jedwali",
+    btnMinimize: "🗗 Punguza",
+    
+    // REGISTRY MANAGER TRANSLATIONS
+    registryTitle: "🏆 AI Model Registry Manager",
+    registrySub: "Simamia mifano ya ujifunzaji wa mashine (Machine Learning Models) na upelekaji wake kazini.",
+    btnReloadRAM: "🔄 Reload Models kwenye RAM",
+    thVersion: "Toleo",
+    thDescription: "Maelezo",
+    thDataset: "Ukubwa wa Dataset",
+    noDescription: "Haina maelezo ya ziada.",
+    registryEmpty: "Hakuna AI models zozote zilizosajiliwa hivi sasa kwenye Registry yetu.",
+    errId: "Hitilafu: ID ya model haipatikani!",
+    dialogActiveTitle: "Thibitisha Kuwasha Model",
+    dialogDeactiveTitle: "Thibitisha Kuzima Model",
+    dialogDeleteTitle: "Thibitisha Kufuta kabisa Model",
+    dialogActiveMsg: "Una uhakika unataka kuwasha model hii kuwa Active? Model ya sasa iliyopo kazini itazimwa mara moja na hii itaanza kukagua miamala.",
+    dialogDeactiveMsg: "Una uhakika unataka kuizima hii model isifanye kazi? Mfumo hautakuwa na model inayofanya kazi hadi utakapowasha nyingine.",
+    dialogDeleteMsg: "Tahadhari kubwa! Hatua hii itafuta kabisa faili la model (.pkl/.h5) kutoka ndani ya Docker container na database. Kitendo hiki hakirudishwi nyuma!"
   },
   ENG: {
     dashboard: "Dashboard",
@@ -98,14 +135,51 @@ const translations = {
     accuracyText: "Accuracy",
     bestBadge: "Best",
     loadingMetrics: "Loading model metrics...",
-    noModelsFound: "No models found matching your search."
+    noModelsFound: "No models found matching your search.",
+    
+    // NEW TRANSACTIONAL TRANSLATIONS
+    txTitle: "Live Transactions Streaming",
+    txSub: "Comprehensive tracking of origin balance, new balance, and fund flow within settlement systems.",
+    txTotal: "Total",
+    txItems: "Transactions",
+    txTimeOrStep: "Time / Step",
+    txType: "Type",
+    txAmount: "Amount",
+    txOldOrig: "Old Balance (Orig)",
+    txNewOrig: "New Balance (Orig)",
+    txOldDest: "Old Balance (Dest)",
+    txNewDest: "New Balance (Dest)",
+    txEmpty: "No live transactions currently available in the database.",
+    txStepLabel: "Step",
+    pagePrev: "◀ Previous",
+    pageNext: "Next ▶",
+    pageOf: "of",
+    pageLabel: "Page",
+    btnMaximize: "🖥️ Maximize Table",
+    btnMinimize: "🗗 Minimize",
+    
+    // REGISTRY MANAGER TRANSLATIONS
+    registryTitle: "🏆 AI Model Registry Manager",
+    registrySub: "Manage machine learning models deployment, state triggers, and operational versions.",
+    btnReloadRAM: "🔄 Reload Models in RAM",
+    thVersion: "Version",
+    thDescription: "Description",
+    thDataset: "Dataset Size",
+    noDescription: "No additional description available.",
+    registryEmpty: "No AI models currently registered in the system registry.",
+    errId: "Error: Model ID cannot be found!",
+    dialogActiveTitle: "Confirm Model Activation",
+    dialogDeactiveTitle: "Confirm Model Deactivation",
+    dialogDeleteTitle: "Confirm Permanent Deletion",
+    dialogActiveMsg: "Are you sure you want to activate this model? The currently active model will be decommissioned immediately.",
+    dialogDeactiveMsg: "Are you sure you want to deactivate this model? The core engine will have no active running model until a new one is triggered.",
+    dialogDeleteMsg: "Critical Warning! This action permanently deletes the binary model file (.pkl/.h5) from storage and DB records. This cannot be undone!"
   }
 };
 
 const LanguageContext = createContext();
 
 export const LanguageProvider = ({ children }) => {
-  // Tunalazimisha kurudi 'SW' ikiwa thamani ya localStorage ni batili (null au undefined)
   const [language, setLanguage] = useState(() => {
     const saved = localStorage.getItem('bot_lang');
     return (saved === 'SW' || saved === 'ENG') ? saved : 'SW';
@@ -119,7 +193,6 @@ export const LanguageProvider = ({ children }) => {
     });
   };
 
-  // Kazi thabiti ya kutafsiri ili kuzuia kucrash kwa mfumo kabisa
   const t = (key) => {
     const currentLang = (language === 'SW' || language === 'ENG') ? language : 'SW';
     return translations[currentLang]?.[key] ?? key;

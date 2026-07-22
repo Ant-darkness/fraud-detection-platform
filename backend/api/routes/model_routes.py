@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from backend.app.core.dependencies import get_current_admin, get_current_officer
 from backend.app.services.model_service import (
     reload_active_model, get_models, get_active_model,
-    activate_model, reject_model, delete_model, promote_model
+    activate_model, reject_model, delete_model
 )
 
 router = APIRouter(prefix="/models", tags=["Models"])

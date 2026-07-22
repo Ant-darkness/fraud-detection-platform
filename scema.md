@@ -29,7 +29,6 @@ CREATE TABLE metric_registry (
 );
 `
 
-
 MODEL_REGISTRY TABLE
 `
 DROP TABLE IF EXISTS model_registry CASCADE;
@@ -118,9 +117,7 @@ CREATE TABLE fraud_predictions (
         ON DELETE CASCADE
 
 );
-`
-TRANSACTIONS TABLE
-`
+`TRANSACTIONS TABLE`
 DROP TABLE IF EXISTS transactions CASCADE;
 CREATE TABLE transactions (
 
@@ -147,9 +144,7 @@ CREATE TABLE transactions (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 
 );
-`
-OFFICERS TABLE
-`
+`OFFICERS TABLE`
 DROP TABLE IF EXISTS officers CASCADE;
 CREATE TABLE officers (
 
@@ -183,9 +178,7 @@ CREATE TABLE officers (
         ON DELETE SET NULL
 
 );
-`
-PASSWORD_RESET_TOKENS TABLE
-`
+`PASSWORD_RESET_TOKENS TABLE`
 DROP TABLE IF EXISTS password_reset_tokens CASCADE
 CREATE TABLE password_reset_tokens (
     token_id BIGSERIAL PRIMARY KEY,
@@ -200,11 +193,9 @@ CREATE TABLE password_reset_tokens (
         ON DELETE CASCADE
 );
 
-UPDATE officers 
-SET password_hash = 'Admin@123', must_change_password = TRUE 
-WHERE email = 'admin@bot.go.tz';  
-
-
+UPDATE officers
+SET password_hash = 'Admin@123', must_change_password = TRUE
+WHERE email = 'admin@bot.go.tz';
 
 CREATE INDEX idx_reset_token ON password_reset_tokens(token_hash);
 `

@@ -1,5 +1,6 @@
 from backend.app.database.connection import get_connection
 
+
 def get_metrics(model_id: int):
     conn = get_connection()
     try:
@@ -25,12 +26,14 @@ def get_metrics(model_id: int):
         cursor.close()
         conn.close()
 
+
 def get_leaderboard():
     conn = get_connection()
     try:
         cursor = conn.cursor()
+        # MAREKEBISHO: Tunasoma mr.is_active na mr.model_version moja kwa moja hapa
         cursor.execute("""
-            SELECT mr.model_id, mr.model_name, mr.model_version,
+            SELECT mr.model_id, mr.model_name, mr.model_version, mr.is_active,
                    mt.precision_score, mt.recall_score, mt.f1_score, mt.roc_auc, mt.fraud_recall, mt.nonfraud_recall
             FROM model_registry mr
             JOIN metric_registry mt ON mr.model_id = mt.model_id
@@ -42,12 +45,14 @@ def get_leaderboard():
                 "model_id": r[0],
                 "model_name": r[1],
                 "model_version": r[2],
-                "precision_score": r[3],
-                "recall_score": r[4],
-                "f1_score": r[5],
-                "roc_auc": r[6],
-                "fraud_recall": r[7],
-                "nonfraud_recall": r[8]
+                # Imeongezwa kwa ajili ya kuonyesha Active/Inactive Status
+                "is_active": r[3],
+                "precision_score": r[4],
+                "recall_score": r[5],
+                "f1_score": r[6],
+                "roc_auc": r[7],
+                "fraud_recall": r[8],
+                "nonfraud_recall": r[9]
             }
             for r in rows
         ]

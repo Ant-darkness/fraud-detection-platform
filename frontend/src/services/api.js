@@ -161,7 +161,19 @@ export const api = {
       });
       return handleResponse(response);
     }
-  },
+    },
+  
+    // - METRICS REGISTRY ---
+    metrics: {
+      getLeaderboard: async () => {
+        const response = await fetch(`${BASE_URL}/metrics/leaderboard`, { headers: getHeaders() });
+        return handleResponse(response);
+      },
+      getById: async (modelId) => {
+        const response = await fetch(`${BASE_URL}/metrics/${modelId}`, { headers: getHeaders() });
+        return handleResponse(response);
+      }
+    },
 
   // --- FRAUD REVIEWS ---
   reviews: {
@@ -221,8 +233,11 @@ export const api = {
 
   // --- TRANSACTIONS ---
   transactions: {
-    getAll: async () => {
-      const response = await fetch(`${BASE_URL}/transactions/`, { headers: getHeaders() });
+    getAll: async ({ page = 1, limit = 15 } = {}) => {
+      // Inapachika vigezo rasmi kwenye URL ya ombi kwenda FastAPI
+      const response = await fetch(`${BASE_URL}/transactions/?page=${page}&limit=${limit}`, { 
+        headers: getHeaders() 
+      });
       return handleResponse(response);
     },
     getOne: async (transactionId) => {
@@ -230,5 +245,6 @@ export const api = {
       const response = await fetch(`${BASE_URL}/transactions/${transactionId}`, { headers: getHeaders() });
       return handleResponse(response);
     }
-  }
+}
+
 };

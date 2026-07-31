@@ -74,90 +74,94 @@ const OfficersAdmin = ({ showToast }) => {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fadeIn">
-      {/* 1. Register Officer Container */}
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-md">
-        <h3 className="text-lg font-bold text-[#D4AF37] mb-6 uppercase tracking-wider">
-          👤 {t('registerOfficer')}
+      {/* 1. Register Officer Container (Light Mode) */}
+      <div className="bg-white border border-gray-200/80 rounded-2xl p-6 shadow-sm">
+        <h3 className="text-lg font-bold text-gray-900 mb-6 uppercase tracking-wider flex items-center gap-2">
+          👤 <span>{t('registerOfficer')}</span>
         </h3>
         <form onSubmit={handleRegister} className="space-y-4">
           <div>
-            <label className="text-xs text-gray-400 block mb-1">Full Name</label>
+            <label className="text-xs font-semibold text-gray-600 block mb-1">Full Name</label>
             <input 
               type="text" 
               required
               value={formName}
               onChange={(e) => setFormName(e.target.value)}
-              className="w-full p-3 rounded-xl bg-black/40 border border-white/15 text-white focus:border-[#D4AF37] outline-none text-sm transition-all"
+              className="w-full p-3 rounded-xl bg-gray-50 border border-gray-300 text-gray-900 focus:border-[#B8860B] focus:bg-white outline-none text-sm transition-all shadow-sm"
+              placeholder="mf. John Doe"
             />
           </div>
           <div>
-            <label className="text-xs text-gray-400 block mb-1">Username</label>
+            <label className="text-xs font-semibold text-gray-600 block mb-1">Username</label>
             <input 
               type="text" 
               required
               value={formUsername}
               onChange={(e) => setFormUsername(e.target.value)}
-              className="w-full p-3 rounded-xl bg-black/40 border border-white/15 text-white focus:border-[#D4AF37] outline-none text-sm transition-all"
+              className="w-full p-3 rounded-xl bg-gray-50 border border-gray-300 text-gray-900 focus:border-[#B8860B] focus:bg-white outline-none text-sm transition-all shadow-sm"
+              placeholder="mf. jdoe"
             />
           </div>
           <div>
-            <label className="text-xs text-gray-400 block mb-1">Email Address</label>
+            <label className="text-xs font-semibold text-gray-600 block mb-1">Email Address</label>
             <input 
               type="email" 
               required
               value={formEmail}
               onChange={(e) => setFormEmail(e.target.value)}
-              className="w-full p-3 rounded-xl bg-black/40 border border-white/15 text-white focus:border-[#D4AF37] outline-none text-sm transition-all"
+              className="w-full p-3 rounded-xl bg-gray-50 border border-gray-300 text-gray-900 focus:border-[#B8860B] focus:bg-white outline-none text-sm transition-all shadow-sm"
+              placeholder="afisa@bot.go.tz"
             />
           </div>
           <div>
-            <label className="text-xs text-gray-400 block mb-1">Temporary Password</label>
+            <label className="text-xs font-semibold text-gray-600 block mb-1">Temporary Password</label>
             <input 
               type="password" 
               required
               value={formPassword}
               onChange={(e) => setFormPassword(e.target.value)}
-              className="w-full p-3 rounded-xl bg-black/40 border border-white/15 text-white focus:border-[#D4AF37] outline-none text-sm transition-all"
+              className="w-full p-3 rounded-xl bg-gray-50 border border-gray-300 text-gray-900 focus:border-[#B8860B] focus:bg-white outline-none text-sm transition-all shadow-sm"
+              placeholder="••••••••"
             />
           </div>
           <div>
-            <label className="text-xs text-gray-400 block mb-1">Role Type</label>
+            <label className="text-xs font-semibold text-gray-600 block mb-1">Role Type</label>
             <select 
               value={formRole}
               onChange={(e) => setFormRole(e.target.value)}
-              className="w-full p-3 rounded-xl bg-black/40 border border-white/15 text-white focus:border-[#D4AF37] outline-none text-sm transition-all cursor-pointer"
+              className="w-full p-3 rounded-xl bg-gray-50 border border-gray-300 text-gray-900 focus:border-[#B8860B] focus:bg-white outline-none text-sm transition-all cursor-pointer shadow-sm"
             >
               <option value="OFFICER">OFFICER</option>
-              <option value="ADMIN">ADMIN (U-Adimini)</option>
+              <option value="ADMIN">ADMIN (U-Admini)</option>
             </select>
           </div>
           <button 
             type="submit" 
-            className="w-full py-3 bg-[#D4AF37] hover:bg-[#bfa032] text-black font-extrabold rounded-xl transition cursor-pointer shadow-lg mt-4"
+            className="w-full py-3 bg-[#D4AF37] hover:bg-[#B8860B] text-white font-extrabold rounded-xl transition cursor-pointer shadow-sm mt-4 uppercase text-xs tracking-wider"
           >
             Sajili Afisa (Submit)
           </button>
         </form>
       </div>
 
-      {/* 2. Officers Directory List */}
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-md">
-        <h3 className="text-lg font-bold text-white mb-6 uppercase tracking-wider">
-          📋 {t('officerList')}
+      {/* 2. Officers Directory List (Light Mode) */}
+      <div className="bg-white border border-gray-200/80 rounded-2xl p-6 shadow-sm">
+        <h3 className="text-lg font-bold text-gray-900 mb-6 uppercase tracking-wider flex items-center gap-2">
+          📋 <span>{t('officerList')}</span>
         </h3>
-        <div className="space-y-4 max-h-[500px] overflow-y-auto">
+        <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1 scrollbar-thin">
           {officers.map(off => (
-            <div key={off.officer_id} className="p-4 bg-black/30 border border-white/5 rounded-xl flex items-center justify-between">
+            <div key={off.officer_id} className="p-4 bg-gray-50/80 border border-gray-200 rounded-xl flex items-center justify-between hover:bg-gray-100/60 transition-colors">
               <div>
-                <h4 className="font-bold text-white text-sm">{off.full_name}</h4>
-                <p className="text-xs text-gray-400">{off.email} ({off.role})</p>
+                <h4 className="font-bold text-gray-900 text-sm">{off.full_name}</h4>
+                <p className="text-xs text-gray-500 font-mono mt-0.5">{off.email} <span className="text-gray-400">({off.role})</span></p>
               </div>
               <button
                 onClick={() => setActiveDialog({ action: 'toggleAccess', officerId: off.officer_id })}
-                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition cursor-pointer ${
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-extrabold transition cursor-pointer ${
                   off.is_active 
-                    ? 'bg-red-500/20 text-red-400 border border-red-500/30' 
-                    : 'bg-green-500/20 text-green-400 border border-green-500/30'
+                    ? 'bg-red-50 text-red-700 border border-red-300 hover:bg-red-600 hover:text-white' 
+                    : 'bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-600 hover:text-white'
                 }`}
               >
                 {off.is_active ? 'Disable' : 'Enable'}
@@ -165,7 +169,7 @@ const OfficersAdmin = ({ showToast }) => {
             </div>
           ))}
           {officers.length === 0 && (
-            <p className="text-center text-gray-500 text-sm py-4">Hakuna maafisa waliosajiliwa bado.</p>
+            <p className="text-center text-gray-500 text-sm py-8 font-sans">Hakuna maafisa waliosajiliwa bado.</p>
           )}
         </div>
       </div>

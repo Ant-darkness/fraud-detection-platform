@@ -177,8 +177,11 @@ export const api = {
 
   // --- FRAUD REVIEWS ---
   reviews: {
-    getPending: async () => {
-      const response = await fetch(`${BASE_URL}/reviews/pending`, { headers: getHeaders() });
+    getPending: async (page = 1, limit = 10) => {
+      const response = await fetch(
+        `${BASE_URL}/reviews/pending?page=${page}&limit=${limit}`, 
+        { headers: getHeaders() }
+      );
       return handleResponse(response);
     },
     approve: async (reviewId) => {
@@ -198,6 +201,7 @@ export const api = {
       return handleResponse(response);
     }
   },
+
 
   // --- OFFICERS (ADMIN ONLY) ---
   officers: {

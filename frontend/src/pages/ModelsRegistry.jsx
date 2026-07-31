@@ -65,26 +65,26 @@ const ModelsRegistry = ({ showToast }) => {
 
   return (
     <div className="space-y-8 animate-fadeIn">
-      {/* FIXED MAREKEBISHO YA INSET NA Z-INDEX KUZUIA SIDEBAR KUKATA DIRISHA */}
+      {/* LIGHT CORPORATE CONTAINER WITH MAXIMIZE / MINIMIZE SUPPORT */}
       <div className={`transition-all duration-300 ${
         isMaximized 
-          ? 'fixed inset-0 z-50 bg-[#020205]/98 border border-[#D4AF37]/40 backdrop-blur-3xl p-8 flex flex-col justify-between shadow-[0_0_60px_rgba(0,0,0,0.9)]' 
-          : 'bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-md relative overflow-hidden'
+          ? 'fixed inset-2 md:inset-4 z-50 bg-white/98 border border-[#D4AF37] backdrop-blur-3xl p-6 md:p-8 flex flex-col justify-between overflow-hidden rounded-2xl shadow-2xl' 
+          : 'bg-white border border-gray-200/80 rounded-2xl p-6 shadow-sm relative overflow-hidden'
       }`}>
         
-        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#D4AF37]/40 to-transparent"></div>
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#D4AF37]/60 to-transparent"></div>
         
         {/* KICHWA CHA UKURASA - BUTTON IPO MBELE YA JINA RASMI */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 shrink-0">
           <div className="flex items-center gap-3">
-            <h3 className="text-lg font-bold text-[#D4AF37] uppercase tracking-wider">
-              {t('registryTitle')}
+            <h3 className="text-lg font-bold text-gray-900 uppercase tracking-wider">
+              🛡️ {t('registryTitle')}
             </h3>
             <button
               onClick={() => setIsMaximized(!isMaximized)}
-              className="px-2.5 py-1 bg-white/5 border border-white/10 hover:border-[#D4AF37] text-white rounded-xl text-[11px] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer"
+              className="px-2.5 py-1 bg-gray-100 border border-gray-300 hover:bg-gray-200 text-gray-800 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer"
             >
-              {isMaximized ? `🗗 ${t('btnMinimize')}` : t('btnMaximize')}
+              {isMaximized ? `🗗 ${t('btnMinimize')}` : `🗖 ${t('btnMaximize')}`}
             </button>
           </div>
           
@@ -98,17 +98,17 @@ const ModelsRegistry = ({ showToast }) => {
                 showToast("Imeshindikana kureload model files kwenye RAM.", "error");
               }
             }}
-            className="px-4 py-2 bg-[#D4AF37]/25 border border-[#D4AF37]/40 text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black font-bold rounded-xl text-xs transition-all self-end sm:self-center cursor-pointer"
+            className="px-4 py-2 bg-amber-50 border border-amber-300 text-amber-800 hover:bg-amber-500 hover:text-white font-bold rounded-xl text-xs transition-all self-end sm:self-center cursor-pointer shadow-sm"
           >
-            {t('btnReloadRAM')}
+            🔄 {t('btnReloadRAM')}
           </button>
         </div>
 
-        {/* JEDWALI LA KISASA - SCROLLABLE BEHAVIOR */}
-        <div className="overflow-x-auto grow border border-white/5 rounded-xl bg-black/20 scrollbar-thin scrollbar-thumb-white/10">
+        {/* JEDWALI LA KISASA LA LIGHT MODE - SCROLLABLE BEHAVIOR */}
+        <div className="overflow-x-auto grow border border-gray-200 rounded-xl bg-gray-50/50 scrollbar-thin">
           <table className="w-full text-left border-collapse min-w-[1100px]">
             <thead>
-              <tr className="border-b border-white/10 text-xs text-gray-400 bg-white/5 uppercase tracking-wider font-semibold">
+              <tr className="border-b border-gray-200 text-xs text-gray-600 bg-gray-100/80 uppercase tracking-wider font-bold">
                 <th className="py-4 px-6 w-[20%]">{t('modelName')}</th>
                 <th className="py-4 px-6 w-[10%]">{t('thVersion')}</th>
                 <th className="py-4 px-6 w-[32%]">{t('thDescription')}</th>
@@ -117,33 +117,33 @@ const ModelsRegistry = ({ showToast }) => {
                 <th className="py-4 px-6 text-center w-[13%]">{t('actions')}</th>
               </tr>
             </thead>
-            <tbody className="text-sm text-gray-200 divide-y divide-white/5">
+            <tbody className="text-sm text-gray-800 divide-y divide-gray-200 font-sans">
               {models.map((m) => {
                 const currentModelId = m.model_id;
                 const isActive = m.is_active;
 
                 return (
-                  <tr key={currentModelId} className={`transition-all hover:bg-white/5 ${isActive ? 'bg-green-500/5' : ''}`}>
-                    <td className="py-4 px-6 font-bold text-white tracking-wide">
+                  <tr key={currentModelId} className={`transition-all hover:bg-white ${isActive ? 'bg-emerald-50/40' : ''}`}>
+                    <td className="py-4 px-6 font-bold text-gray-900 tracking-wide">
                       {m.model_name}
                     </td>
-                    <td className="py-4 px-6 font-mono text-[#D4AF37] text-xs">
+                    <td className="py-4 px-6 font-mono font-bold text-[#B8860B] text-xs">
                       v{m.model_version}
                     </td>
-                    <td className="py-4 px-6 text-gray-400 max-w-[280px]" title={m.model_description}>
-                      <p className="truncate hover:text-white transition-colors duration-200 cursor-help">
+                    <td className="py-4 px-6 text-gray-600 max-w-[280px]" title={m.model_description}>
+                      <p className="truncate hover:text-gray-900 transition-colors duration-200 cursor-help text-xs">
                         {m.model_description || t('noDescription')}
                       </p>
                     </td>
-                    <td className="py-4 px-6 font-mono text-xs text-gray-300">
+                    <td className="py-4 px-6 font-mono text-xs text-gray-700">
                       {m.dataset_size ? Number(m.dataset_size).toLocaleString() : "N/A"} rows
                     </td>
                     <td className="py-4 px-6">
                       <div className="flex flex-col gap-1 items-start">
                         <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-black tracking-wider uppercase ${
                           isActive 
-                            ? 'bg-green-500/10 text-green-400 border border-green-500/30' 
-                            : 'bg-red-500/10 text-red-400 border border-red-500/30'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                            : 'bg-red-50 text-red-700 border border-red-200'
                         }`}>
                           {isActive ? t('active') : t('inactive')}
                         </span>
@@ -157,27 +157,27 @@ const ModelsRegistry = ({ showToast }) => {
                         {!isActive ? (
                           <button 
                             onClick={() => triggerAction('activate', currentModelId)}
-                            className="px-3 py-1.5 rounded-lg bg-green-500/20 text-green-400 border border-green-500/30 text-xs font-semibold hover:bg-green-500 hover:text-white transition cursor-pointer"
+                            className="px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-700 text-xs font-semibold hover:bg-emerald-600 hover:text-white transition cursor-pointer"
                           >
                             Activate
                           </button>
                         ) : (
                           <button 
                             onClick={() => triggerAction('deactivate', currentModelId)}
-                            className="px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-semibold hover:bg-amber-500 hover:text-white transition cursor-pointer"
+                            className="px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-300 text-amber-800 text-xs font-semibold hover:bg-amber-600 hover:text-white transition cursor-pointer"
                           >
                             Deactivate
                           </button>
                         )}
                         
-                        {/* DELETE BUTTON - RANGI IMERESHESHWA VYEMA */}
+                        {/* DELETE BUTTON */}
                         <button 
                           onClick={() => triggerAction('delete', currentModelId)}
                           disabled={isActive}
                           className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
                             isActive 
-                              ? 'bg-gray-800/20 border-gray-700 text-gray-500 cursor-not-allowed opacity-40' 
-                              : 'bg-rose-500/20 border-rose-500/40 text-rose-400 hover:bg-rose-600 hover:text-white cursor-pointer'
+                              ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed opacity-50' 
+                              : 'bg-red-50 border border-red-300 text-red-700 hover:bg-red-600 hover:text-white cursor-pointer'
                           }`}
                         >
                           Delete

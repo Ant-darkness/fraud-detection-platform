@@ -2,10 +2,20 @@ from fastapi import HTTPException
 from backend.app.database.connection import get_connection
 
 
-def get_pending_reviews():
+def get_pending_reviews(page: int = 1, limit: int = 10):
     conn = get_connection()
     try:
         cursor = conn.cursor()
+
+        # 1. Pata jumla ya miamala yote inayosubiri ukaguzi (PENDING)
+        cursor.execute(
+            "SELECT COUNT(*) FROM fraud_review_queue WHERE status='PENDING'")
+        total_count = cursor.fetchone()[0]
+
+        # 2. Kakula offset kulingana na page na limit
+        offset = (page - 1) * limit
+
+        # 3. Chukua data za ukurasa husika pekee
         cursor.execute("""
             SELECT q.review_id, q.transaction_id, q.fraud_probability, q.status,
                    t.amount, t.nameOrig, t.nameDest, t.type, t.step,
@@ -14,19 +24,30 @@ def get_pending_reviews():
             JOIN transactions t ON q.transaction_id = t.transaction_id
             WHERE q.status='PENDING'
             ORDER BY q.review_id DESC
-        """)
+            LIMIT %s OFFSET %s
+        """, (limit, offset))
+
         rows = cursor.fetchall()
 
-        # Hakikisha majina ya nguzo hapa yanaendana sawia na yaliyopo juu kwenye SELECT
         columns = [
             "review_id", "transaction_id", "fraud_probability", "status",
             "amount", "nameOrig", "nameDest", "type", "step",
             "oldbalanceOrg", "newbalanceOrig", "oldbalanceDest", "newbalanceDest"
         ]
-        return [dict(zip(columns, row)) for row in rows]
+
+        reviews = [dict(zip(columns, row)) for row in rows]
+
+        return {
+            "items": reviews,
+            "total": total_count,
+            "page": page,
+            "limit": limit,
+            "total_pages": (total_count + limit - 1) // limit if total_count > 0 else 1
+        }
     finally:
         cursor.close()
         conn.close()
+
 
 
 def approve_review(review_id: int, officer_id: int):

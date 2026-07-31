@@ -153,6 +153,33 @@ services:
       - fraud-network
 
   # =========================
+  # CDC- DEBEZIUM SERVICE
+  # =========================
+  connect:
+    image: debezium/connect:2.7.3.Final
+    container_name: debezium
+    ports:
+      - "8083:8083"
+
+    environment:
+      BOOTSTRAP_SERVERS: kafka:9092
+      GROUP_ID: "1"
+      CONFIG_STORAGE_TOPIC: connect_configs
+      OFFSET_STORAGE_TOPIC: connect_offsets
+      STATUS_STORAGE_TOPIC: connect_statuses
+      KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      STATUS_STORAGE_REPLICATION_FACTOR: 1
+
+    depends_on:
+      - kafka
+
+    networks:
+      - fraud-network
+
+  # =========================
   # FASTAPI SERVICE
   # =========================
   fraud-api:

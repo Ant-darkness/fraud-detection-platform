@@ -4,36 +4,59 @@ import { api } from '../services/api';
 import ConfirmDialog from '../components/ConfirmDialog';
 
 const FraudReviews = ({ showToast }) => {
-  const { t, language } = useLanguage(); // Nimeongeza 'language' hapa kwa ajili ya ukaguzi wa masharti ya lugha ya haraka
+  const { t, language } = useLanguage();
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isMaximized, setIsMaximized] = useState(false); 
   const [activeDialog, setActiveDialog] = useState(null); 
   const [inspectedTx, setInspectedTx] = useState(null);
 
-  const fetchPendingReviews = async () => {
+  // --- PAGINATION STATES ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const fetchPendingReviews = async (page = currentPage, limit = pageSize) => {
     setLoading(true);
     try {
-      const data = await api.reviews.getPending();
-      setReviews(Array.isArray(data) ? data : []);
+      const response = await api.reviews.getPending(page, limit);
+      
+      if (response && response.items) {
+        setReviews(response.items);
+        setTotalCount(response.total || 0);
+        setTotalPages(response.total_pages || 1);
+      } else if (Array.isArray(response)) {
+        setReviews(response);
+        setTotalCount(response.length);
+        setTotalPages(1);
+      } else {
+        setReviews([]);
+      }
     } catch (error) {
-      if (showToast) {
+        console.error("Shida halisi ni: ", error);
+        if (showToast) {
         showToast("Imeshindikana kupata miamala ya ukaguzi.", "error");
       }
     } finally {
-      setLoading(false); // Hii sasa itafikiwa 100% bila kukwama njiani
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchPendingReviews();
+    fetchPendingReviews(currentPage, pageSize);
     
-    // Cleanup function: Hakikisha tunapoondoka kwenye route hii state zote zinasafishwa vizuri
     return () => {
       setIsMaximized(false);
       setInspectedTx(null);
     };
-  }, []);
+  }, [currentPage, pageSize]);
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
 
   const handleAction = (type, reviewId) => {
     if (!reviewId) {
@@ -55,7 +78,7 @@ const FraudReviews = ({ showToast }) => {
         if (showToast) showToast("Muamala umetiwa alama ya utapeli na kuzuiliwa.", "success");
       }
       
-      setReviews(prevReviews => prevReviews.filter(r => r.review_id !== reviewId));
+      fetchPendingReviews(currentPage, pageSize);
       if (inspectedTx && inspectedTx.review_id === reviewId) {
         setInspectedTx(null); 
       }
@@ -66,7 +89,7 @@ const FraudReviews = ({ showToast }) => {
     }
   };
 
-  if (loading) {
+  if (loading && reviews.length === 0) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <span className="w-10 h-10 border-4 border-[#D4AF37] border-t-transparent rounded-full animate-spin"></span>
@@ -78,30 +101,36 @@ const FraudReviews = ({ showToast }) => {
     <div className="space-y-6 animate-fadeIn">
       {inspectedTx ? (
         /* ================= SEHEMU YA KWANZA: RIPOTI YA NDANI YA MUAMALA (DETAILED REPORT) ================= */
-        <div className={`transition-all duration-300 ${
+        <div className={`transition-all duration-300 ease-in-out ${
           isMaximized 
-            ? 'fixed inset-0 z-50 bg-[#020205]/98 border border-[#D4AF37]/40 backdrop-blur-3xl p-8 flex flex-col justify-between overflow-y-auto shadow-[0_0_60px_rgba(0,0,0,0.9)]' 
-            : 'bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl p-8 space-y-6 relative'
+            ? 'fixed inset-2 md:inset-4 z-50 bg-white/98 border border-[#D4AF37] backdrop-blur-3xl p-6 md:p-8 flex flex-col justify-between overflow-y-auto rounded-2xl shadow-2xl' 
+            : 'bg-white border border-gray-200/80 shadow-sm rounded-2xl p-6 md:p-8 space-y-6 relative'
         }`}>
-          <div className="absolute top-0 left-0 w-full h-[1.5px] bg-gradient-to-r from-transparent via-red-500/40 to-transparent"></div>
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-red-500/50 to-transparent"></div>
           
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/10 pb-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-100 pb-4 shrink-0">
             <div className="flex items-center gap-3">
-              <h3 className="text-xl font-black text-[#D4AF37] tracking-wide">
+              <h3 className="text-lg md:text-xl font-black text-gray-900 tracking-wide">
                 🔍 TRANSACTION AUDITING DETAILED REPORT
               </h3>
+              {/* BUTTON YA MAXIMIZE / MINIMIZE */}
               <button
+                type="button"
                 onClick={() => setIsMaximized(!isMaximized)}
-                className="px-2.5 py-1 bg-white/5 border border-white/10 hover:border-[#D4AF37] text-white rounded-xl text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                className="px-3 py-1 bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-800 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5"
               >
-                {isMaximized ? `🗗 ${t('btnMinimize')}` : t('btnMaximize')}
+                {isMaximized ? (
+                  <>🗗 <span>{t('btnMinimize') || 'Minimize'}</span></>
+                ) : (
+                  <>🗖 <span>{t('btnMaximize') || 'Maximize'}</span></>
+                )}
               </button>
             </div>
             <button 
+              type="button"
               onClick={() => setInspectedTx(null)}
-              className="px-4 py-2 rounded-xl bg-white/10 text-white font-bold hover:bg-white/20 transition-all cursor-pointer text-xs self-end sm:self-center"
+              className="px-4 py-2 rounded-xl bg-gray-100 text-gray-800 font-bold hover:bg-gray-200 border border-gray-200 transition-all cursor-pointer text-xs self-end sm:self-center"
             >
-              {/* FIXED: Hapa sasa syntax ipo sawa na haitaleta crash yoyote */}
               ⬅️ {language === 'SW' ? 'Rudisha Nyuma' : 'Back'}
             </button>
           </div>
@@ -111,39 +140,39 @@ const FraudReviews = ({ showToast }) => {
             
             {/* Core Info */}
             <div className="space-y-4">
-              <h4 className="text-xs font-black uppercase text-gray-400 tracking-wider">Misingi ya Muamala</h4>
-              <div className="p-4 bg-black/40 rounded-xl border border-white/5">
+              <h4 className="text-xs font-black uppercase text-gray-500 tracking-wider">Misingi ya Muamala</h4>
+              <div className="p-4 bg-gray-50 rounded-xl border border-gray-200/60">
                 <span className="text-xs text-gray-500 block">ID ya Muamala</span>
-                <span className="text-lg font-mono font-bold text-white">#{inspectedTx.transaction_id || inspectedTx.id}</span>
+                <span className="text-lg font-mono font-bold text-gray-900">#{inspectedTx.transaction_id || inspectedTx.id}</span>
               </div>
-              <div className="p-4 bg-black/40 rounded-xl border border-white/5">
+              <div className="p-4 bg-gray-50 rounded-xl border border-gray-200/60">
                 <span className="text-xs text-gray-500 block">{t('txType')}</span>
-                <span className="text-lg font-bold text-blue-400 uppercase">{inspectedTx.type || "N/A"}</span>
+                <span className="text-lg font-bold text-blue-700 uppercase">{inspectedTx.type || "N/A"}</span>
               </div>
-              <div className="p-4 bg-black/40 rounded-xl border border-white/5">
+              <div className="p-4 bg-gray-50 rounded-xl border border-gray-200/60">
                 <span className="text-xs text-gray-500 block">{t('txAmount')}</span>
-                <span className="text-xl font-bold text-green-400">TZS {Number(inspectedTx.amount || 0).toLocaleString()}</span>
+                <span className="text-xl font-bold text-emerald-700">TZS {Number(inspectedTx.amount || 0).toLocaleString()}</span>
               </div>
             </div>
 
             {/* Origination Details */}
             <div className="space-y-4">
-              <h4 className="text-xs font-black uppercase text-gray-400 tracking-wider">Taarifa za Mtumaji (Origination)</h4>
-              <div className="p-4 bg-black/40 rounded-xl border border-white/5">
+              <h4 className="text-xs font-black uppercase text-gray-500 tracking-wider">Taarifa za Mtumaji (Origination)</h4>
+              <div className="p-4 bg-gray-50 rounded-xl border border-gray-200/60">
                 <span className="text-xs text-gray-500 block">Akaunti ya Mtumaji (Orig)</span>
-                <span className="text-sm font-mono font-bold text-gray-300 truncate block">
+                <span className="text-sm font-mono font-bold text-gray-800 truncate block">
                   {inspectedTx.nameOrig || inspectedTx.nameorig || "HAIJAFAFANULIWA"}
                 </span>
               </div>
-              <div className="p-4 bg-black/40 rounded-xl border border-white/5">
+              <div className="p-4 bg-gray-50 rounded-xl border border-gray-200/60">
                 <span className="text-xs text-gray-500 block">{t('txOldOrig')}</span>
-                <span className="text-sm font-bold text-gray-300">
+                <span className="text-sm font-bold text-gray-800">
                   TZS {Number(inspectedTx.oldbalanceOrg ?? inspectedTx.oldbalanceorig ?? 0).toLocaleString()}
                 </span>
               </div>
-              <div className="p-4 bg-black/40 rounded-xl border border-white/5">
+              <div className="p-4 bg-gray-50 rounded-xl border border-gray-200/60">
                 <span className="text-xs text-gray-500 block">{t('txNewOrig')}</span>
-                <span className="text-sm font-bold text-gray-300">
+                <span className="text-sm font-bold text-gray-800">
                   TZS {Number(inspectedTx.newbalanceOrig ?? inspectedTx.newbalanceorig ?? 0).toLocaleString()}
                 </span>
               </div>
@@ -151,30 +180,30 @@ const FraudReviews = ({ showToast }) => {
 
             {/* Destination & Risk Matrix */}
             <div className="space-y-4">
-              <h4 className="text-xs font-black uppercase text-gray-400 tracking-wider">Taarifa za Mpokeaji & AI Risk</h4>
-              <div className="p-4 bg-black/40 rounded-xl border border-white/5">
+              <h4 className="text-xs font-black uppercase text-gray-500 tracking-wider">Taarifa za Mpokeaji & AI Risk</h4>
+              <div className="p-4 bg-gray-50 rounded-xl border border-gray-200/60">
                 <span className="text-xs text-gray-500 block">Akaunti ya Mpokeaji (Dest)</span>
-                <span className="text-sm font-mono font-bold text-gray-300 truncate block">
+                <span className="text-sm font-mono font-bold text-gray-800 truncate block">
                   {inspectedTx.nameDest || inspectedTx.namedest || "HAIJAFAFANULIWA"}
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <div className="p-3 bg-black/40 rounded-xl border border-white/5 text-xs">
+                <div className="p-3 bg-gray-50 rounded-xl border border-gray-200/60 text-xs">
                   <span className="text-gray-500 block">Old Bal Dest</span>
-                  <span className="text-gray-300 font-bold">
+                  <span className="text-gray-800 font-bold">
                     TZS {Number(inspectedTx.oldbalanceDest ?? inspectedTx.oldbalancedest ?? 0).toLocaleString()}
                   </span>
                 </div>
-                <div className="p-3 bg-black/40 rounded-xl border border-white/5 text-xs">
+                <div className="p-3 bg-gray-50 rounded-xl border border-gray-200/60 text-xs">
                   <span className="text-gray-500 block">New Bal Dest</span>
-                  <span className="text-gray-300 font-bold">
+                  <span className="text-gray-800 font-bold">
                     TZS {Number(inspectedTx.newbalanceDest ?? inspectedTx.newbalancedest ?? 0).toLocaleString()}
                   </span>
                 </div>
               </div>
-              <div className="p-4 bg-red-500/10 rounded-xl border border-red-500/30">
-                <span className="text-xs text-[#D4AF37] font-bold block">{t('predictedFraud')}</span>
-                <span className="text-xl font-black text-red-500">{(Number(inspectedTx.fraud_probability || 0) * 100).toFixed(2)}% Risk Score</span>
+              <div className="p-4 bg-red-50 rounded-xl border border-red-200">
+                <span className="text-xs text-[#B8860B] font-bold block">{t('predictedFraud')}</span>
+                <span className="text-xl font-black text-red-700">{(Number(inspectedTx.fraud_probability || 0) * 100).toFixed(2)}% Risk Score</span>
               </div>
             </div>
 
@@ -187,16 +216,18 @@ const FraudReviews = ({ showToast }) => {
             </div>
           )}
 
-          <div className="flex justify-end gap-4 pt-4 border-t border-white/10 mt-4 shrink-0">
+          <div className="flex justify-end gap-4 pt-4 border-t border-gray-100 mt-4 shrink-0">
             <button 
+              type="button"
               onClick={() => handleAction('approve', inspectedTx.review_id)}
-              className="px-6 py-3 rounded-xl bg-green-500/25 border border-green-500/40 text-green-400 font-bold hover:bg-green-600 hover:text-white transition cursor-pointer text-xs uppercase"
+              className="px-6 py-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-700 font-bold hover:bg-emerald-600 hover:text-white transition cursor-pointer text-xs uppercase"
             >
               Confirm Legal (Clean)
             </button>
             <button 
+              type="button"
               onClick={() => handleAction('reject', inspectedTx.review_id)}
-              className="px-6 py-3 rounded-xl bg-red-500/25 border border-red-500/40 text-red-400 font-bold hover:bg-red-600 hover:text-white transition cursor-pointer text-xs uppercase"
+              className="px-6 py-3 rounded-xl bg-red-50 border border-red-300 text-red-700 font-bold hover:bg-red-600 hover:text-white transition cursor-pointer text-xs uppercase"
             >
               Flag Fraud (Block)
             </button>
@@ -204,28 +235,39 @@ const FraudReviews = ({ showToast }) => {
         </div>
       ) : (
         /* ================= SEHEMU YA PILI: ORODHA YA JEDWALI KUU (MAIN TABLE VIEW) ================= */
-        <div className={`transition-all duration-300 ${
+        <div className={`transition-all duration-300 ease-in-out ${
           isMaximized 
-            ? 'fixed inset-0 z-50 bg-[#020205]/98 border border-[#D4AF37]/40 backdrop-blur-3xl p-8 flex flex-col justify-between shadow-[0_0_60px_rgba(0,0,0,0.9)]' 
-            : 'bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl p-6 overflow-hidden'
+            ? 'fixed inset-2 md:inset-4 z-50 bg-white border border-[#D4AF37] backdrop-blur-3xl p-6 md:p-8 flex flex-col justify-between overflow-hidden rounded-2xl shadow-2xl' 
+            : 'bg-white border border-gray-200/80 shadow-sm rounded-2xl p-6 overflow-hidden'
         }`}>
           
-          <div className="flex items-center gap-3 mb-6 shrink-0">
-            <h3 className="text-lg font-bold text-white tracking-wider">
-              🛡️ {t('pendingReviews')}
-            </h3>
-            <button
-              onClick={() => setIsMaximized(!isMaximized)}
-              className="px-2.5 py-1 bg-white/5 border border-white/10 hover:border-[#D4AF37] text-white rounded-xl text-[11px] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer"
-            >
-              {isMaximized ? `🗗 ${t('btnMinimize')}` : t('btnMaximize')}
-            </button>
+          <div className="flex items-center justify-between mb-6 shrink-0">
+            <div className="flex items-center gap-3">
+              <h3 className="text-lg font-bold text-gray-900 tracking-wider">
+                🛡️ {t('pendingReviews')}
+              </h3>
+              {/* BUTTON YA MAXIMIZE / MINIMIZE KWENYE TABLE VIEW */}
+              <button
+                type="button"
+                onClick={() => setIsMaximized(!isMaximized)}
+                className="px-3 py-1 bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-800 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                {isMaximized ? (
+                  <>🗗 <span>{t('btnMinimize') || 'Minimize'}</span></>
+                ) : (
+                  <>🗖 <span>{t('btnMaximize') || 'Maximize'}</span></>
+                )}
+              </button>
+            </div>
+            <span className="text-xs text-gray-600 font-mono">
+              Jumla: <strong className="text-[#B8860B]">{totalCount}</strong> miamala
+            </span>
           </div>
 
-          <div className="overflow-x-auto grow border border-white/5 rounded-xl bg-black/20 scrollbar-thin scrollbar-thumb-white/10">
+          <div className="overflow-x-auto grow border border-gray-200 rounded-xl bg-gray-50/50 scrollbar-thin">
             <table className="w-full text-left border-collapse min-w-[800px]">
               <thead>
-                <tr className="border-b border-white/10 text-xs text-gray-400 uppercase tracking-widest bg-white/5">
+                <tr className="border-b border-gray-200 text-xs text-gray-600 uppercase tracking-widest bg-gray-100/70">
                   <th className="py-4 px-6">ID</th>
                   <th className="py-4 px-6">{t('txType')}</th>
                   <th className="py-4 px-6">{t('txAmount')}</th>
@@ -233,34 +275,37 @@ const FraudReviews = ({ showToast }) => {
                   <th className="py-4 px-6 text-center">{t('actions')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5 text-sm text-gray-200 font-mono">
+              <tbody className="divide-y divide-gray-200 text-sm text-gray-800 font-mono">
                 {reviews.map((r) => (
-                  <tr key={r.review_id} className="hover:bg-white/5 transition-colors">
-                    <td className="py-4 px-6 font-bold text-white">#{r.transaction_id || r.id}</td>
-                    <td className="py-4 px-6 uppercase text-xs font-semibold text-blue-400">{r.type || "TRANSFER"}</td>
-                    <td className="py-4 px-6 text-green-400 font-bold text-sm">TZS {Number(r.amount || 0).toLocaleString()}</td>
+                  <tr key={r.review_id} className="hover:bg-white transition-colors">
+                    <td className="py-4 px-6 font-bold text-gray-900">#{r.transaction_id || r.id}</td>
+                    <td className="py-4 px-6 uppercase text-xs font-semibold text-blue-700">{r.type || "TRANSFER"}</td>
+                    <td className="py-4 px-6 text-emerald-700 font-bold text-sm">TZS {Number(r.amount || 0).toLocaleString()}</td>
                     <td className="py-4 px-6 font-sans">
-                      <span className="bg-red-500/15 border border-red-500/30 text-red-400 px-2 py-1 rounded-lg text-xs font-black">
+                      <span className="bg-red-50 border border-red-200 text-red-700 px-2 py-1 rounded-lg text-xs font-black">
                         {(Number(r.fraud_probability || 0) * 100).toFixed(1)}% Risk
                       </span>
                     </td>
                     <td className="py-4 px-6 font-sans">
                       <div className="flex items-center justify-center gap-3">
                         <button 
+                          type="button"
                           onClick={() => setInspectedTx(r)}
-                          className="px-3 py-1.5 rounded-lg bg-white/10 text-xs font-semibold text-gray-300 hover:bg-white/20 transition cursor-pointer"
+                          className="px-3 py-1.5 rounded-lg bg-gray-100 border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-200 transition cursor-pointer"
                         >
                           👁️ Kagua (Inspect)
                         </button>
                         <button 
+                          type="button"
                           onClick={() => handleAction('approve', r.review_id)}
-                          className="px-3 py-1.5 rounded-lg bg-green-500/20 border border-green-500/30 text-green-400 text-xs font-semibold hover:bg-green-500 hover:text-white transition cursor-pointer"
+                          className="px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-700 text-xs font-semibold hover:bg-emerald-600 hover:text-white transition cursor-pointer"
                         >
                           Confirm Legal
                         </button>
                         <button 
+                          type="button"
                           onClick={() => handleAction('reject', r.review_id)}
-                          className="px-3 py-1.5 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-semibold hover:bg-red-600 hover:text-white transition cursor-pointer"
+                          className="px-3 py-1.5 rounded-lg bg-red-50 border border-red-300 text-red-700 text-xs font-semibold hover:bg-red-600 hover:text-white transition cursor-pointer"
                         >
                           Flag Fraud
                         </button>
@@ -278,6 +323,53 @@ const FraudReviews = ({ showToast }) => {
               </tbody>
             </table>
           </div>
+
+          {/* ================= SEHEMU YA PAGINATION CONTROLS ================= */}
+          {totalCount > 0 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 mt-2 border-t border-gray-200 text-xs font-sans shrink-0">
+              <div className="flex items-center gap-2 text-gray-600">
+                <span>Onyesha:</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="bg-white border border-gray-300 rounded-lg px-2 py-1 text-gray-900 focus:outline-none focus:border-[#D4AF37]"
+                >
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                </select>
+                <span>kwa kila ukurasa</span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1.5 rounded-lg bg-gray-100 border border-gray-200 text-gray-800 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
+                >
+                  ◀ Yaliyopita
+                </button>
+
+                <span className="text-gray-700 font-mono">
+                  Ukurasa <strong className="text-[#B8860B]">{currentPage}</strong> kati ya <strong>{totalPages}</strong>
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage >= totalPages}
+                  className="px-3 py-1.5 rounded-lg bg-gray-100 border border-gray-200 text-gray-800 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
+                >
+                  Yajayo ▶
+                </button>
+              </div>
+            </div>
+          )}
+
         </div>
       )}
 

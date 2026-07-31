@@ -42,7 +42,7 @@ const Dashboard = ({ showToast }) => {
         // 1. Kutayarisha data za mienendo ya Grafu ya kwanza (Trend) kwa usahihi wa kalenda
         if (analytics?.trend && analytics.trend.length > 0) {
           const formattedTrend = analytics.trend.map((val) => ({
-            time_label: val.time_label, // Sasa inasoma tarehe au saa rasmi (mfano: 02:00 au 17 Jul)
+            time_label: val.time_label,
             'Miamala ya Shaka': Number(val.count) || 0
           }));
           setTrendData(formattedTrend);
@@ -57,7 +57,9 @@ const Dashboard = ({ showToast }) => {
           setDistribution([]);
         }
       } catch (error) {
-        showToast("Imeshindikana kupakia takwimu za Dashboard.", "error");
+        if (showToast) {
+          showToast("Imeshindikana kupakia takwimu za Dashboard.", "error");
+        }
       } finally {
         setLoading(false);
       }
@@ -79,10 +81,10 @@ const Dashboard = ({ showToast }) => {
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-[#020205]/95 border border-white/10 p-3 rounded-xl backdrop-blur-md shadow-2xl">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{label || payload[0].name}</p>
-          <p className="text-sm font-black text-white">
-            {payload[0].name}: <span className="text-[#D4AF37]">{payload[0].value.toLocaleString()}</span>
+        <div className="bg-white border border-gray-200 p-3 rounded-xl backdrop-blur-md shadow-lg">
+          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">{label || payload[0].name}</p>
+          <p className="text-sm font-black text-gray-900">
+            {payload[0].name}: <span className="text-[#B8860B] font-bold">{payload[0].value.toLocaleString()}</span>
           </p>
         </div>
       );
@@ -101,8 +103,7 @@ const Dashboard = ({ showToast }) => {
   return (
     <div className="space-y-8 animate-fadeIn">
       {/* Timeframe Filter Buttons */}
-      <div className="bg-white/5 p-4 rounded-3xl border border-white/10 backdrop-blur-md relative overflow-hidden flex flex-wrap items-center justify-between gap-4">
-        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+      <div className="bg-white p-4 rounded-3xl border border-gray-200/80 shadow-sm relative overflow-hidden flex flex-wrap items-center justify-between gap-4">
         <div className="flex gap-2">
           {['24hrs', '7days', '4weeks', '1year'].map((tf) => (
             <button
@@ -114,8 +115,8 @@ const Dashboard = ({ showToast }) => {
               }}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
                 timeframe === tf && !customStart
-                  ? 'bg-[#D4AF37]/10 text-[#D4AF37] border border-[#D4AF37]/30 shadow-[0_0_15px_rgba(212,175,55,0.1)]'
-                  : 'text-gray-400 hover:text-white hover:bg-white/5 bg-transparent border border-transparent'
+                  ? 'bg-gray-100 text-gray-900 border border-gray-300 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50 bg-transparent border border-transparent'
               }`}
             >
               {tf.toUpperCase()}
@@ -129,14 +130,14 @@ const Dashboard = ({ showToast }) => {
             type="date"
             value={customStart}
             onChange={(e) => setCustomStart(e.target.value)}
-            className="bg-black/40 border border-white/10 text-white p-2 rounded-xl focus:border-[#D4AF37] outline-none transition-all"
+            className="bg-gray-50 border border-gray-300 text-gray-900 p-2 rounded-xl focus:border-[#D4AF37] outline-none transition-all font-medium"
           />
-          <span className="text-gray-500 font-bold">ZIKIWA</span>
+          <span className="text-gray-600 font-bold">ZIKIWA</span>
           <input
             type="date"
             value={customEnd}
             onChange={(e) => setCustomEnd(e.target.value)}
-            className="bg-black/40 border border-white/10 text-white p-2 rounded-xl focus:border-[#D4AF37] outline-none transition-all"
+            className="bg-gray-50 border border-gray-300 text-gray-900 p-2 rounded-xl focus:border-[#D4AF37] outline-none transition-all font-medium"
           />
         </div>
       </div>
@@ -144,15 +145,15 @@ const Dashboard = ({ showToast }) => {
       {/* KPI Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         {[
-          { key: 'totalTransactions', val: Number(stats.total_transactions)?.toLocaleString() || 0, col: 'text-blue-400', border: 'via-blue-500/30' },
-          { key: 'predictedFraud', val: Number(stats.predicted_frauds)?.toLocaleString() || 0, col: 'text-amber-400', border: 'via-[#D4AF37]/30' },
-          { key: 'pendingReviews', val: Number(stats.pending_reviews)?.toLocaleString() || 0, col: 'text-purple-400', border: 'via-purple-500/30' },
-          { key: 'confirmedFraud', val: Number(stats.confirmed_frauds)?.toLocaleString() || 0, col: 'text-red-500', border: 'via-red-500/30' },
-          { key: 'fraudRate', val: `${stats.fraud_rate || 0}%`, col: 'text-rose-400', border: 'via-rose-500/30' }
+          { key: 'totalTransactions', val: Number(stats.total_transactions)?.toLocaleString() || 0, col: 'text-blue-700', border: 'via-blue-500/40' },
+          { key: 'predictedFraud', val: Number(stats.predicted_frauds)?.toLocaleString() || 0, col: 'text-amber-700', border: 'via-[#D4AF37]/50' },
+          { key: 'pendingReviews', val: Number(stats.pending_reviews)?.toLocaleString() || 0, col: 'text-purple-700', border: 'via-purple-500/40' },
+          { key: 'confirmedFraud', val: Number(stats.confirmed_frauds)?.toLocaleString() || 0, col: 'text-red-700', border: 'via-red-500/40' },
+          { key: 'fraudRate', val: `${stats.fraud_rate || 0}%`, col: 'text-rose-700', border: 'via-rose-500/40' }
         ].map((item, idx) => (
-          <div key={idx} className="bg-white/5 border border-white/10 rounded-2xl p-5 backdrop-blur-md relative overflow-hidden">
-            <div className={`absolute top-0 left-0 w-full h-[1.5px] bg-gradient-to-r from-transparent ${item.border} to-transparent`}></div>
-            <div className="text-gray-400 text-[10px] font-black uppercase tracking-wider">{t(item.key)}</div>
+          <div key={idx} className="bg-white border border-gray-200/80 rounded-2xl p-5 shadow-sm relative overflow-hidden">
+            <div className={`absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent ${item.border} to-transparent`}></div>
+            <div className="text-gray-500 text-[10px] font-black uppercase tracking-wider">{t(item.key)}</div>
             <div className={`text-2xl font-black mt-3 tracking-tight ${item.col}`}>{item.val}</div>
           </div>
         ))}
@@ -162,9 +163,9 @@ const Dashboard = ({ showToast }) => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
         {/* Graph 1: Mienendo ya Udanganyifu (Trend Chart) */}
-        <div className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-md relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#FF4E6E]/30 to-transparent"></div>
-          <h3 className="text-sm font-black text-white tracking-widest uppercase mb-6 flex items-center gap-2">
+        <div className="bg-white border border-gray-200/80 rounded-3xl p-6 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#dc2626]/40 to-transparent"></div>
+          <h3 className="text-sm font-black text-gray-900 tracking-widest uppercase mb-6 flex items-center gap-2">
             <span>📊</span> {t('trend')} ({timeframe.toUpperCase()})
           </h3>
           
@@ -172,14 +173,13 @@ const Dashboard = ({ showToast }) => {
             <div className="h-72 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
-                  {/* Sasa hapa inasoma "time_label" iliyotoka backend badala ya name ya mikono */}
-                  <XAxis dataKey="time_label" stroke="#6b7280" fontSize={10} tickLine={false} />
-                  <YAxis stroke="#6b7280" fontSize={10} tickLine={false} axisLine={false} />
-                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.02)' }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                  <XAxis dataKey="time_label" stroke="#475569" fontSize={11} fontWeight={600} tickLine={false} />
+                  <YAxis stroke="#475569" fontSize={11} fontWeight={600} tickLine={false} axisLine={false} />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
                   <Bar 
                     dataKey="Miamala ya Shaka" 
-                    fill="#FF4E6E" 
+                    fill="#dc2626" 
                     radius={[4, 4, 0, 0]}
                     maxBarSize={40}
                   />
@@ -187,16 +187,16 @@ const Dashboard = ({ showToast }) => {
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="h-72 flex items-center justify-center text-gray-500 text-sm">
+            <div className="h-72 flex items-center justify-center text-gray-500 text-sm font-medium">
               Hakuna data ya mwenendo iliyopatikana kwa kipindi hiki.
             </div>
           )}
         </div>
 
         {/* Graph 2: Advanced Histogram/Area Time Distribution */}
-        <div className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-md relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00F0FF]/30 to-transparent"></div>
-          <h3 className="text-sm font-black text-white tracking-widest uppercase mb-6 flex items-center gap-2">
+        <div className="bg-white border border-gray-200/80 rounded-3xl p-6 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#0284c7]/40 to-transparent"></div>
+          <h3 className="text-sm font-black text-gray-900 tracking-widest uppercase mb-6 flex items-center gap-2">
             <span>📈</span> {getDistributionTitle()}
           </h3>
           
@@ -206,25 +206,26 @@ const Dashboard = ({ showToast }) => {
                 <AreaChart data={distribution} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="fraudColor" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#00F0FF" stopOpacity={0.4}/>
-                      <stop offset="95%" stopColor="#00F0FF" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#0284c7" stopOpacity={0.25}/>
+                      <stop offset="95%" stopColor="#0284c7" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                   <XAxis 
                     dataKey="time_label" 
-                    stroke="#6b7280" 
-                    fontSize={10} 
+                    stroke="#475569" 
+                    fontSize={11} 
+                    fontWeight={600}
                     tickLine={false}
                     dy={10}
                   />
-                  <YAxis stroke="#6b7280" fontSize={10} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#475569" fontSize={11} fontWeight={600} tickLine={false} axisLine={false} />
                   <Tooltip content={<CustomTooltip />} />
                   <Area 
                     type="monotone" 
                     dataKey="count" 
                     name="Idadi ya Utapeli"
-                    stroke="#00F0FF" 
+                    stroke="#0284c7" 
                     strokeWidth={2}
                     fillOpacity={1} 
                     fill="url(#fraudColor)" 
@@ -233,7 +234,7 @@ const Dashboard = ({ showToast }) => {
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="h-72 flex items-center justify-center text-gray-500 text-sm">
+            <div className="h-72 flex items-center justify-center text-gray-500 text-sm font-medium">
               Hakuna mgawanyo wa kihistoria (Time Distribution) uliopatikana kwa sasa.
             </div>
           )}

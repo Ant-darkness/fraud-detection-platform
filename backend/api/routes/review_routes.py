@@ -1,12 +1,13 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from backend.app.core.dependencies import get_current_officer
 from backend.app.services.review_service import get_pending_reviews, approve_review, reject_review
 
 router = APIRouter(prefix="/reviews", tags=["Reviews"])
 
 @router.get("/pending")
-def pending(officer=Depends(get_current_officer)):
-    return get_pending_reviews()
+def pending(page: int = Query(1, ge=1), limit: int = Query(10, ge=1, le=100),
+    officer=Depends(get_current_officer)):
+    return get_pending_reviews(page=page, limit=limit)
 
 @router.put("/{review_id}/approve")
 def approve(review_id: int, officer=Depends(get_current_officer)):

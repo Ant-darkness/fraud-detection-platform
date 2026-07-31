@@ -20,22 +20,22 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
   const isAdmin = user?.role === 'ADMIN';
 
   return (
-    <aside className="fixed top-0 left-0 h-screen w-64 bg-white border-r border-gray-200 flex flex-col justify-between z-50 shadow-sm">
+    <aside className="fixed top-0 left-0 h-screen w-64 bg-[#0A192F] border-r border-blue-900/40 flex flex-col justify-between z-50 shadow-xl">
       {/* TOP PART OF SIDEBAR */}
       <div className="flex flex-col flex-1 overflow-y-auto">
         {/* Logo and BOT FRAUD RADAR - Size sawa na Topbar (h-20) */}
-        <div className="h-20 min-h-[5rem] px-6 border-b border-gray-100 flex items-center gap-3">
+        <div className="h-20 min-h-[5rem] px-6 border-b border-blue-900/50 flex items-center gap-3 bg-[#0B1E3A]">
           <img 
             src="/logo.png" 
             alt="BOT Logo" 
-            className="h-10 w-10 object-contain drop-shadow-sm"
+            className="h-10 w-10 object-contain drop-shadow"
             onError={(e) => { e.target.src = "https://placehold.co/150?text=BOT"; }}
           />
           <div>
-            <h2 className="text-xs font-black text-gray-900 tracking-wider uppercase leading-none">
+            <h2 className="text-xs font-black text-white tracking-wider uppercase leading-none">
               BOT FRAUD
             </h2>
-            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+            <span className="text-[10px] text-blue-300 font-bold uppercase tracking-widest">
               RADAR
             </span>
           </div>
@@ -49,8 +49,8 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
               onClick={() => setActiveTab(item.id)}
               className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
                 activeTab === item.id
-                  ? 'bg-gray-100 text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 font-extrabold'
+                  : 'text-blue-100/70 hover:text-white hover:bg-blue-900/40'
               }`}
             >
               <span className="text-base">{item.icon}</span>
@@ -64,28 +64,45 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
               onClick={() => setActiveTab('officers')}
               className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
                 activeTab === 'officers'
-                  ? 'bg-gray-100 text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 font-extrabold'
+                  : 'text-blue-100/70 hover:text-white hover:bg-blue-900/40'
               }`}
             >
               <span className="text-base">👤</span>
               <span className="truncate">{t('officers')}</span>
             </button>
           )}
+
+          {/* --- AIRFLOW PIPELINE LINK --- */}
+          <div className="pt-2">
+            <hr className="border-blue-900/50 my-2" />
+            <a
+              href="http://localhost:8080"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold text-blue-100/70 hover:text-white hover:bg-blue-900/40 transition-all duration-200 group"
+            >
+              <div className="flex items-center gap-3.5 truncate">
+                <span className="text-base group-hover:rotate-45 transition-transform duration-300">🌀</span>
+                <span className="truncate">Airflow Orchestrator</span>
+              </div>
+              <span className="text-[10px] text-blue-300 font-mono">↗</span>
+            </a>
+          </div>
         </nav>
       </div>
 
       {/* BOTTOM PART OF SIDEBAR (System Administrator - Chini kabisa) */}
-      <div className="p-4 border-t border-gray-100 bg-gray-50/50">
+      <div className="p-4 border-t border-blue-900/50 bg-[#0B1E3A]">
         <div className="flex items-center gap-3 px-2 py-1.5">
-          <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-700">
+          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-sm font-bold text-white shadow-sm">
             SA
           </div>
           <div className="overflow-hidden">
-            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest block">
+            <span className="text-[10px] text-blue-300 font-bold uppercase tracking-widest block">
               Logged in as
             </span>
-            <span className="text-[11px] font-black text-gray-800 uppercase tracking-tight block truncate">
+            <span className="text-[11px] font-black text-white uppercase tracking-tight block truncate">
               SYSTEMADMINISTRATOR
             </span>
           </div>

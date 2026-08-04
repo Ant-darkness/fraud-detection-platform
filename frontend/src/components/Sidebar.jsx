@@ -8,12 +8,13 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
 
   // Orodha ya Tabs za Sidebar
   const menuItems = [
-    { id: 'dashboard', label: t('dashboard'), icon: '📊' },
-    { id: 'reviews', label: t('fraudReviews'), icon: '🛡️' },
-    { id: 'volume', label: t('volumeAnalysis'), icon: '📈' },
-    { id: 'models', label: t('models'), icon: '🏆' },
-    { id: 'metrics', label: t('metricsTitle'), icon: '🥇' },
-    { id: 'transactions', label: t('transactions'), icon: '💸' },
+    { id: 'dashboard', label: t('dashboard') || 'Dashboard', icon: '📊' },
+    { id: 'reviews', label: t('fraudReviews') || 'Fraud Reviews', icon: '🛡️' },
+    { id: 'volume', label: t('volumeAnalysis') || 'Volume Analysis', icon: '📈' },
+    { id: 'businessAnalytics', label: t('businessAnalytics') || 'Business Intelligence', icon: '⚡' }, // 👈 IMEONGEZWA HAPA
+    { id: 'models', label: t('models') || 'AI Models', icon: '🏆' },
+    { id: 'metrics', label: t('metricsTitle') || 'Leaderboard', icon: '🥇' },
+    { id: 'transactions', label: t('transactions') || 'Transactions', icon: '💸' },
   ];
 
   // Onyesha "Officers Admin" tu kwa watumiaji wenye jukumu la ADMIN
@@ -69,7 +70,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
               }`}
             >
               <span className="text-base">👤</span>
-              <span className="truncate">{t('officers')}</span>
+              <span className="truncate">{t('officers') || 'Officers Admin'}</span>
             </button>
           )}
 
@@ -92,18 +93,18 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
         </nav>
       </div>
 
-      {/* BOTTOM PART OF SIDEBAR (System Administrator - Chini kabisa) */}
+      {/* BOTTOM PART OF SIDEBAR (Logged in user info) */}
       <div className="p-4 border-t border-blue-900/50 bg-[#0B1E3A]">
         <div className="flex items-center gap-3 px-2 py-1.5">
-          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-sm font-bold text-white shadow-sm">
-            SA
+          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-sm font-bold text-white shadow-sm uppercase">
+            {user?.full_name ? user.full_name.substring(0, 2) : 'SA'}
           </div>
           <div className="overflow-hidden">
             <span className="text-[10px] text-blue-300 font-bold uppercase tracking-widest block">
               Logged in as
             </span>
             <span className="text-[11px] font-black text-white uppercase tracking-tight block truncate">
-              SYSTEMADMINISTRATOR
+              {user?.full_name || 'SYSTEM ADMINISTRATOR'}
             </span>
           </div>
         </div>

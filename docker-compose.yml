@@ -1,20 +1,289 @@
+#x-airflow-common: &airflow-common
+#  build:
+#    context: .
+#    dockerfile: Dockerfile.airflow
+#  environment:
+#    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+#    HOST_PROJECT_PATH: C:/Users/Abely/Desktop/fraud-detection-platform
+#    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-postgres:5432/airflow
+#    AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+#    AIRFLOW__LOGGING__LOGGING_LEVEL: INFO
+
+#    # Usalama na Auth (Muhimu kwa Airflow 3)
+#    AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: "Abely:admin"
+#    AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "True"
+
+#    # 🔥 SULUHISHO LA AIRFLOW 3: Lazima funguo ya JWT ifanane kote ili wasirushiane mawasiliano
+#    AIRFLOW__API_AUTH__JWT_SECRET: "fraud_detection_platform_secret_jwt_key_2026"
+
+#    # 🔥 PATH SAHIHI YA EXECUTION API KATIKA MATOLEO MAPYA
+#    AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://airflow-api-server:8080/execution
+
+#    PYTHONPATH: /opt/airflow
+#    DB_HOST: fraud-postgres
+#    DB_PORT: 5432
+#    DB_NAME: FraudDB
+#    DB_USER: postgres
+#    DB_PASSWORD: Fraud@2026
+
+#  volumes:
+#    - ./airflow_pipeline/dags:/opt/airflow/dags
+#    - ./airflow_pipeline/logs:/opt/airflow/logs
+#    - ./airflow_pipeline/plugins:/opt/airflow/plugins
+#    - ./:/opt/airflow
+#    - /var/run/docker.sock:/var/run/docker.sock
+#  networks:
+#    - fraud-network
+
+#services:
+#  # =========================
+#  # AIRFLOW DATABASE
+#  # =========================
+#  airflow-postgres:
+#    image: postgres:15
+#    container_name: airflow-postgres
+#    environment:
+#      POSTGRES_USER: airflow
+#      POSTGRES_PASSWORD: airflow
+#      POSTGRES_DB: airflow
+#    ports:
+#      - "5432:5432"
+#    volumes:
+#      - postgres_data:/var/lib/postgresql/data
+#    networks:
+#      - fraud-network
+
+#  # =========================
+#  # FRAUD DATABASE 
+#  # =========================
+#  fraud-postgres:
+#    image: postgres:15
+#    container_name: fraud-postgres
+#    environment:
+#      POSTGRES_USER: postgres
+#      POSTGRES_PASSWORD: Fraud@2026
+#      POSTGRES_DB: FraudDB
+#    ports:
+#      - "5433:5432"
+#    volumes:
+#      - fraud_postgres_data:/var/lib/postgresql/data
+#    networks:
+#      - fraud-network
+
+#  # =========================
+#  # AIRFLOW INIT
+#  # =========================
+#  airflow-init:
+#    <<: *airflow-common
+#    container_name: airflow-init
+#    depends_on:
+#      - airflow-postgres
+#    command: >
+#      bash -c "airflow db migrate && airflow users create --username Abely --password admin --firstname Abely --lastname User --role Admin --email abely@local.com"
+
+#  # =========================
+#  # AIRFLOW API SERVER (UI + API)
+#  # =========================
+#  airflow-api-server:
+#    <<: *airflow-common
+#    container_name: airflow-api-server
+#    depends_on:
+#      - airflow-postgres
+#    command: airflow api-server
+#    ports:
+#      - "8080:8080"
+#    restart: unless-stopped
+
+#  # =========================
+#  # AIRFLOW SCHEDULER
+#  # =========================
+#  airflow-scheduler:
+#    <<: *airflow-common
+#    container_name: airflow-scheduler
+#    depends_on:
+#      - airflow-postgres
+#      - airflow-api-server
+#    command: airflow scheduler
+#    restart: unless-stopped
+
+#  # =========================
+#  # AIRFLOW DAG PROCESSOR 
+#  # =========================
+#  airflow-dag-processor:
+#    <<: *airflow-common
+#    container_name: airflow-dag-processor
+#    depends_on:
+#      - airflow-postgres
+#    command: airflow dag-processor
+#    restart: unless-stopped
+
+#  # =========================
+#  # AIRFLOW TRIGGERER
+#  # =========================
+#  airflow-triggerer:
+#    <<: *airflow-common
+#    container_name: airflow-triggerer
+#    depends_on:
+#      - airflow-postgres
+#    command: airflow triggerer
+#    restart: unless-stopped
+
+#  # =========================
+#  # KAFKA
+#  # =========================
+#  kafka:
+#    image: apache/kafka:latest
+#    container_name: kafka
+#    ports:
+#      - "9092:9092"
+#      - "9093:9093"
+#    environment:
+#      KAFKA_NODE_ID: 1
+#      KAFKA_PROCESS_ROLES: broker,controller
+#      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+#      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+#      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+#      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+#      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+#      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+#      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+#    volumes:
+#      - kafka_data:/var/lib/kafka/data
+#    networks:
+#      - fraud-network
+
+#  # =========================
+#  # CDC- DEBEZIUM SERVICE
+#  # =========================
+#  connect:
+#    image: debezium/connect:2.7.3.Final
+#    container_name: debezium
+#    ports:
+#      - "8083:8083"
+
+#    environment:
+#      BOOTSTRAP_SERVERS: kafka:9092
+#      GROUP_ID: "1"
+#      CONFIG_STORAGE_TOPIC: connect_configs
+#      OFFSET_STORAGE_TOPIC: connect_offsets
+#      STATUS_STORAGE_TOPIC: connect_statuses
+#      KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+#      VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+#      CONFIG_STORAGE_REPLICATION_FACTOR: 1
+#      OFFSET_STORAGE_REPLICATION_FACTOR: 1
+#      STATUS_STORAGE_REPLICATION_FACTOR: 1
+
+#    depends_on:
+#      - kafka
+
+#    networks:
+#      - fraud-network
+
+#  # =========================
+#  # FASTAPI SERVICE
+#  # =========================
+#  fraud-api:
+#    build:
+#      context: .
+#      dockerfile: Dockerfile.api
+#    container_name: fraud-api
+#    depends_on:
+#      - fraud-postgres
+#    environment:
+#      DB_HOST: fraud-postgres
+#      DB_PORT: 5432
+#      DB_NAME: FraudDB
+#      DB_USER: postgres
+#      DB_PASSWORD: Fraud@2026
+#    ports:
+#      - "8000:8000"
+#    volumes:
+#      - ./:/app
+#    networks:
+#      - fraud-network
+
+#  frontend-ui:
+#    container_name: frontend-ui
+#    build:
+#      context: ./frontend
+#      dockerfile: Dockerfile
+#      args:
+#        - VITE_API_BASE_URL=http://localhost:8000
+#    ports:
+#      - "3000:80"
+#    restart: always
+#    networks:
+#      - fraud-network
+
+#    # =========================
+#  # AGENTIC AI MICROSERVICE
+#  # =========================
+#  agentic-service:
+#    build:
+#      context: .
+#      dockerfile: agentic_service/Dockerfile
+#    container_name: agentic-service
+#    depends_on:
+#      - fraud-postgres
+#    environment:
+#      DB_HOST: fraud-postgres
+#      DB_PORT: 5432
+#      DB_NAME: FraudDB
+#      DB_USER: postgres
+#      DB_PASSWORD: Fraud@2026
+#      GEMINI_API_KEY: "GEMINI_API_KEY"
+#      GEMINI_MODEL_NAME: "gemini-1.5-flash"
+#    ports:
+#      - "8001:8001"
+#    networks:
+#      - fraud-network
+#    restart: unless-stopped
+
+
+#  ml-training:
+#    build:
+#      context: .
+#      dockerfile: Dockerfile.training
+#    container_name: ml-training
+#    volumes:
+#      - .:/app
+#    environment:
+#      DATABASE_URL: ${DATABASE_URL}
+#    restart: "no"
+
+#    networks:
+#      - fraud-network
+
+#networks:
+#  fraud-network:
+#    driver: bridge
+
+#volumes:
+#  postgres_data:
+#  fraud_postgres_data:
+#  kafka_data:
+
+
+
+
+
 x-airflow-common: &airflow-common
   build:
     context: .
     dockerfile: Dockerfile.airflow
   environment:
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
-    HOST_PROJECT_PATH: C:/Users/Abely/Desktop/fraud-detection-platform
-    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-postgres:5432/airflow
+    HOST_PROJECT_PATH: ${HOST_PROJECT_PATH}
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_POSTGRES_USER}:${AIRFLOW_POSTGRES_PASSWORD}@airflow-postgres:5432/${AIRFLOW_POSTGRES_DB}
     AIRFLOW__CORE__LOAD_EXAMPLES: "False"
     AIRFLOW__LOGGING__LOGGING_LEVEL: INFO
 
     # Usalama na Auth (Muhimu kwa Airflow 3)
-    AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: "Abely:admin"
+    AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: "${AIRFLOW_ADMIN_USER}:${AIRFLOW_ADMIN_PASSWORD}"
     AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "True"
 
-    # 🔥 SULUHISHO LA AIRFLOW 3: Lazima funguo ya JWT ifanane kote ili wasirushiane mawasiliano
-    AIRFLOW__API_AUTH__JWT_SECRET: "fraud_detection_platform_secret_jwt_key_2026"
+    # 🔥 SULUHISHO LA AIRFLOW 3: Lazima funguo ya JWT ifanane kote
+    AIRFLOW__API_AUTH__JWT_SECRET: "${AIRFLOW_JWT_SECRET}"
 
     # 🔥 PATH SAHIHI YA EXECUTION API KATIKA MATOLEO MAPYA
     AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://airflow-api-server:8080/execution
@@ -22,9 +291,9 @@ x-airflow-common: &airflow-common
     PYTHONPATH: /opt/airflow
     DB_HOST: fraud-postgres
     DB_PORT: 5432
-    DB_NAME: FraudDB
-    DB_USER: postgres
-    DB_PASSWORD: Fraud@2026
+    DB_NAME: ${FRAUD_POSTGRES_DB}
+    DB_USER: ${FRAUD_POSTGRES_USER}
+    DB_PASSWORD: ${FRAUD_POSTGRES_PASSWORD}
 
   volumes:
     - ./airflow_pipeline/dags:/opt/airflow/dags
@@ -43,9 +312,9 @@ services:
     image: postgres:15
     container_name: airflow-postgres
     environment:
-      POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow
-      POSTGRES_DB: airflow
+      POSTGRES_USER: ${AIRFLOW_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${AIRFLOW_POSTGRES_PASSWORD}
+      POSTGRES_DB: ${AIRFLOW_POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
@@ -60,9 +329,9 @@ services:
     image: postgres:15
     container_name: fraud-postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: Fraud@2026
-      POSTGRES_DB: FraudDB
+      POSTGRES_USER: ${FRAUD_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${FRAUD_POSTGRES_PASSWORD}
+      POSTGRES_DB: ${FRAUD_POSTGRES_DB}
     ports:
       - "5433:5432"
     volumes:
@@ -79,7 +348,7 @@ services:
     depends_on:
       - airflow-postgres
     command: >
-      bash -c "airflow db migrate && airflow users create --username Abely --password admin --firstname Abely --lastname User --role Admin --email abely@local.com"
+      bash -c "airflow db migrate && airflow users create --username ${AIRFLOW_ADMIN_USER} --password ${AIRFLOW_ADMIN_PASSWORD} --firstname Abely --lastname User --role Admin --email ${AIRFLOW_ADMIN_EMAIL}"
 
   # =========================
   # AIRFLOW API SERVER (UI + API)
@@ -160,7 +429,6 @@ services:
     container_name: debezium
     ports:
       - "8083:8083"
-
     environment:
       BOOTSTRAP_SERVERS: kafka:9092
       GROUP_ID: "1"
@@ -172,10 +440,8 @@ services:
       CONFIG_STORAGE_REPLICATION_FACTOR: 1
       OFFSET_STORAGE_REPLICATION_FACTOR: 1
       STATUS_STORAGE_REPLICATION_FACTOR: 1
-
     depends_on:
       - kafka
-
     networks:
       - fraud-network
 
@@ -192,9 +458,9 @@ services:
     environment:
       DB_HOST: fraud-postgres
       DB_PORT: 5432
-      DB_NAME: FraudDB
-      DB_USER: postgres
-      DB_PASSWORD: Fraud@2026
+      DB_NAME: ${FRAUD_POSTGRES_DB}
+      DB_USER: ${FRAUD_POSTGRES_USER}
+      DB_PASSWORD: ${FRAUD_POSTGRES_PASSWORD}
     ports:
       - "8000:8000"
     volumes:
@@ -215,6 +481,30 @@ services:
     networks:
       - fraud-network
 
+  # =========================
+  # AGENTIC AI MICROSERVICE
+  # =========================
+  agentic-service:
+    build:
+      context: .
+      dockerfile: agentic_service/Dockerfile
+    container_name: agentic-service
+    depends_on:
+      - fraud-postgres
+    environment:
+      DB_HOST: fraud-postgres
+      DB_PORT: 5432
+      DB_NAME: ${FRAUD_POSTGRES_DB}
+      DB_USER: ${FRAUD_POSTGRES_USER}
+      DB_PASSWORD: ${FRAUD_POSTGRES_PASSWORD}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_MODEL_NAME: ${GEMINI_MODEL_NAME}
+    ports:
+      - "8001:8001"
+    networks:
+      - fraud-network
+    restart: unless-stopped
+
   ml-training:
     build:
       context: .
@@ -225,7 +515,6 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL}
     restart: "no"
-
     networks:
       - fraud-network
 

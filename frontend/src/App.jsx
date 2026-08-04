@@ -5,12 +5,13 @@ import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import FraudReviews from './pages/FraudReviews';
 import VolumeAnalysis from './pages/VolumeAnalysis';
+import BusinessAnalytics from './pages/BusinessAnalytics'; // 👈 1. IMPORT HAPA
 import ModelsRegistry from './pages/ModelsRegistry';
 import MetricsReadOnly from './pages/MetricsReadOnly';
 import OfficersAdmin from './pages/OfficersAdmin';
 import Transactions from './pages/Transactions';
 import Login from './pages/Login';
-import ChangePassword from './pages/ChangePassword'; // Hakikisha unayo hii page au component
+import ChangePassword from './pages/ChangePassword';
 
 const App = () => {
   const { user } = useAuth();
@@ -44,6 +45,7 @@ const App = () => {
           {activeTab === 'dashboard' && <Dashboard showToast={showToast} />}
           {activeTab === 'reviews' && <FraudReviews showToast={showToast} />}
           {activeTab === 'volume' && <VolumeAnalysis showToast={showToast} />}
+          {activeTab === 'businessAnalytics' && <BusinessAnalytics showToast={showToast} />} {/* 👈 2. RENDER HAPA */}
           {activeTab === 'models' && <ModelsRegistry showToast={showToast} />}
           {activeTab === 'metrics' && <MetricsReadOnly showToast={showToast} />}
           {activeTab === 'transactions' && <Transactions showToast={showToast} />}

@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '../services/api';
+// Kama unatumia react-hot-toast:
+import { toast } from 'react-hot-toast'; 
 
 const AuthContext = createContext();
 
@@ -24,9 +26,22 @@ export const AuthProvider = ({ children }) => {
       if (user) {
         const now = Date.now();
         const inactiveTime = now - parseInt(lastActive, 10);
-        if (inactiveTime > 300000) {
+        if (inactiveTime > 300000) { // Dakika 5
           logout();
-          alert("Kipindi chako kimeisha kwa usalama. Tafadhali ingia tena.");
+          
+          // Toastbadala ya alert ya juu
+          toast.error("Kipindi chako kimeisha kwa usalama. Tafadhali ingia tena.", {
+            duration: 5000,
+            position: 'top-right',
+            style: {
+              background: '#FEF2F2',
+              color: '#991B1B',
+              border: '1px solid #FCA5A5',
+              borderRadius: '12px',
+              fontWeight: '600',
+              fontSize: '13px'
+            }
+          });
         }
       }
     };

@@ -1,7 +1,9 @@
 const BASE_URL = "http://localhost:8000";
 
-// Kazi ya usaidizi kupata Headers zote zikiwa na Authorization Token
-// MAREKEBISHO: Inakubali 'customToken' wakati mtumiaji bado hajawekwa kwenye localStorage
+const WS_BASE_URL = BASE_URL.replace(/^http/, 'ws') + "/ws/live-feed";
+
+
+
 const getHeaders = (customToken = null) => {
   const headers = {
     'Content-Type': 'application/json',
@@ -32,6 +34,38 @@ const handleResponse = async (response) => {
 };
 
 export const api = {
+    
+  // --- WEBSOCKET SERVICE ---
+  ws: {
+    connect: (onMessage, onError) => {
+      const socket = new WebSocket(WS_BASE_URL);
+
+      socket.onopen = () => {
+        console.log("⚡ Live WebSocket Stream Connected to FastAPI.");
+      };
+
+      socket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (onMessage) onMessage(data);
+        } catch (err) {
+          console.error("WebSocket message parsing error:", err);
+        }
+      };
+
+      socket.onerror = (error) => {
+        console.error("WebSocket Error:", error);
+        if (onError) onError(error);
+      };
+
+      socket.onclose = () => {
+        console.warn("WebSocket disconnected. Reconnecting attempt in 3s...");
+      };
+
+      return socket;
+    }
+  },
+
   // --- AUTHENTICATION ---
   auth: {
     login: async (email, password) => {
@@ -90,37 +124,155 @@ export const api = {
   },
 
   // --- DASHBOARD & ANALYTICS ---
-    dashboard: {
-        getSummary: async () => {
-            const response = await fetch(`${BASE_URL}/dashboard/summary`, { headers: getHeaders() });
-            return handleResponse(response);
-        },
-        getAnalytics: async (timeframe = '7days', startDate = null, endDate = null) => {
-            let url = `${BASE_URL}/dashboard/analytics?timeframe=${timeframe}`;
-            if (startDate && endDate) {
-                url += `&start_date=${startDate}&end_date=${endDate}`;
-            }
-            const response = await fetch(url, { headers: getHeaders() });
-            return handleResponse(response);
-        },
-        getVolumeComparison: async (params = {}) => {
-            const { timeframe, custom_start, custom_end } = params;
-        
-            // Kutengeneza query string kwa njia salama
-            const urlParams = new URLSearchParams();
-            if (timeframe) urlParams.append('timeframe', timeframe);
-            if (custom_start) urlParams.append('custom_start', custom_start);
-            if (custom_end) urlParams.append('custom_end', custom_end);
-        
-            const queryString = urlParams.toString();
-            const finalUrl = queryString
-                ? `${BASE_URL}/dashboard/volume-comparison?${queryString}`
-                : `${BASE_URL}/dashboard/volume-comparison`;
-      
-            const response = await fetch(finalUrl, { headers: getHeaders() });
-            return handleResponse(response);
-        }
+//  import { BASE_URL, getHeaders, handleResponse } from './config'; // Recalibrate paths based on your setup
+
+  dashboard: {
+    // 1. Summary & Analytics Base REST API
+    getSummary: async () => {
+      const response = await fetch(`${BASE_URL}/dashboard/summary`, { headers: getHeaders() });
+      return handleResponse(response);
     },
+
+    getAnalytics: async (timeframe = '24hrs', startDate = null, endDate = null) => {
+      let url = `${BASE_URL}/dashboard/analytics?timeframe=${timeframe}`;
+      if (startDate && endDate) {
+        url += `&start_date=${startDate}&end_date=${endDate}`;
+      }
+      const response = await fetch(url, { headers: getHeaders() });
+      return handleResponse(response);
+    },
+
+    getVolumeComparison: async (params = {}) => {
+      const { timeframe, custom_start, custom_end } = params;
+      const urlParams = new URLSearchParams();
+      if (timeframe) urlParams.append('timeframe', timeframe);
+      if (custom_start) urlParams.append('custom_start', custom_start);
+      if (custom_end) urlParams.append('custom_end', custom_end);
+
+      const response = await fetch(`${BASE_URL}/dashboard/volume-comparison?${urlParams.toString()}`, {
+        headers: getHeaders()
+      });
+      return handleResponse(response);
+    },
+
+    // 2. Real-Time WebSocket for Plotly/Recharts Live Volume
+    connectVolumeWebSocket: (onMessageCallback, timeframe = '24hrs') => {
+      const wsUrl = BASE_URL.replace(/^http/, 'ws') + '/dashboard/ws/live-volume';
+      const socket = new WebSocket(wsUrl);
+
+      socket.onopen = () => {
+        console.log('WebSocket Connected for Live Chart');
+        socket.send(JSON.stringify({ timeframe }));
+      };
+
+      socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (onMessageCallback) {
+          onMessageCallback(data);
+        }
+      };
+
+      socket.onerror = (error) => {
+        console.error('WebSocket Error:', error);
+      };
+
+      socket.onclose = () => {
+        console.log('WebSocket Disconnected');
+      };
+
+      const changeTimeframe = (newTimeframe) => {
+        if (socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ timeframe: newTimeframe }));
+        }
+      };
+
+      return {
+        socket,
+        changeTimeframe,
+        close: () => socket.close()
+      };
+    },
+
+    // -------------------------------------------------------------
+    // AGENT 2 INTEGRATION: Autonomous Trend & Liquidity Analysis (Zamani - HUIJAGUSA/HUIJAHARIBU)
+    // -------------------------------------------------------------
+    getTrendAnalysisAgent: async (params = {}) => {
+      const { timeframe, custom_start, custom_end } = params;
+
+      const urlParams = new URLSearchParams();
+      if (timeframe) urlParams.append('timeframe', timeframe);
+      if (custom_start) urlParams.append('custom_start', custom_start);
+      if (custom_end) urlParams.append('custom_end', custom_end);
+
+      const queryString = urlParams.toString();
+      const finalUrl = `${BASE_URL}/api/v1/agents/trends${queryString ? `?${queryString}` : ''}`;
+
+      const response = await fetch(finalUrl, { headers: getHeaders() });
+      return handleResponse(response);
+    },
+
+    // -------------------------------------------------------------
+    // AI AGENTS PROMPT PORTALS (Mpya kwa ajili ya Dynamic Prompts)
+    // -------------------------------------------------------------
+    askFraudAgent: async (payload) => {
+      const response = await fetch(`${BASE_URL}/api/v1/agents/ask-fraud`, {
+        method: 'POST',
+        headers: {
+          ...getHeaders(),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+      return handleResponse(response);
+    },
+
+    askVolumeAgent: async (payload) => {
+      const response = await fetch(`${BASE_URL}/api/v1/agents/ask-volume`, {
+        method: 'POST',
+        headers: {
+          ...getHeaders(),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+      return handleResponse(response);
+    }
+  },
+
+
+   
+    // --- ADVANCED FORENSIC AGENT ANALYTICS ---
+    businessAnalytics: {
+      /**
+       * AI AGENT ASSISTANT (SELECT-Only Query Agent)
+       * Handles natural language forensic questions.
+       * Restricted strictly to SELECT operations.
+       */
+      askAgent: async (prompt) => {
+        const response = await fetch(`${BASE_URL}/api/v1/agents/query`, {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({ prompt })
+        });
+        return handleResponse(response);
+      },
+    
+      /**
+       * Export analytical query results into CSV/Report format if needed.
+       */
+      exportReport: async (filters) => {
+        const response = await fetch(`${BASE_URL}/analytics/export`, {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify(filters)
+        });
+        return handleResponse(response);
+      }
+    },
+    
+
+  
+
       
 
   // --- AI MODELS REGISTRY ---

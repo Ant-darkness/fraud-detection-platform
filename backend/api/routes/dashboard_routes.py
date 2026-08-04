@@ -1,8 +1,13 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 from typing import Optional
+import json
+
 from backend.app.services.dashboard_service import (
-    dashboard_summary, get_advanced_analytics, get_volume_comparison,
-    recent_predictions, fraud_trend, officer_stats
+    dashboard_summary, 
+    get_dashboard_analytics,
+    get_volume_comparison_data,
+    generate_plotly_volume_chart,
+    manager
 )
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
@@ -11,38 +16,37 @@ router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 def summary():
     return dashboard_summary()
 
-
 @router.get("/analytics")
 def analytics(
-    timeframe: str = Query("7days", pattern="^(24hrs|7days|4weeks|1year)$"),
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None
+    timeframe: str = Query("24hrs"),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None)
 ):
-    # Majina ya start_date na end_date sasa yamenyoooka pande zote
-    return get_advanced_analytics(timeframe, start_date, end_date)
-
+    return get_dashboard_analytics(timeframe=timeframe, start_date=start_date, end_date=end_date)
 
 @router.get("/volume-comparison")
-def comparison(
-    timeframe: str = Query(
-        "7days", description="24hrs, 7days, 4weeks, au 1year"),
+def volume_comparison(
+    timeframe: str = Query("24hrs"),
     custom_start: Optional[str] = Query(None),
     custom_end: Optional[str] = Query(None)
 ):
-    return get_volume_comparison(
-        timeframe=timeframe,
-        custom_start=custom_start,
-        custom_end=custom_end
-    )
+    return get_volume_comparison_data(timeframe=timeframe, start_date=custom_start, end_date=custom_end)
 
-@router.get("/recent-predictions")
-def recent():
-    return recent_predictions()
+# WebSocket kwa ajili ya Live Volume Charting
+@router.websocket("/ws/live-volume")
+async def live_volume_websocket(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        initial_payload = generate_plotly_volume_chart(timeframe="24hrs")
+        await websocket.send_text(json.dumps(initial_payload))
 
-@router.get("/fraud-trend")
-def trend():
-    return fraud_trend()
+        while True:
+            data_received = await websocket.receive_text()
+            request_json = json.loads(data_received)
+            selected_tf = request_json.get("timeframe", "24hrs")
+            
+            updated_payload = generate_plotly_volume_chart(timeframe=selected_tf)
+            await websocket.send_text(json.dumps(updated_payload))
 
-@router.get("/officers")
-def officers():
-    return officer_stats()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)

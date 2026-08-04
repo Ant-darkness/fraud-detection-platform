@@ -11,12 +11,13 @@ from backend.api.routes.auth_routes import router as auth_router
 from backend.api.routes.notification_routes import router as notification_router
 from backend.api.routes.transaction_routes import router as transaction_router
 from backend.api.routes.metric_routes import router as metric_router
+from backend.api.routes.websocket_routes import router as websocket_router
+from backend.api.routes.analytics_routes import router as analytics_router
+from backend.api.routes.agentic_routes import router as agentic_router
 
 from backend.app.core.lifespan import lifespan
 
-
-app = FastAPI(title="Fraud Detection API",
-              lifespan=lifespan)
+app = FastAPI(title="Fraud Detection API", lifespan=lifespan)
 
 origins = [
     "http://localhost:3000",
@@ -25,32 +26,22 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,      # Ruhusu frontend hii
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],         # GET, POST, PUT, DELETE, OPTIONS n.k.
-    allow_headers=["*"],         # Ruhusu headers zote
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(health_router)
-
 app.include_router(prediction_router)
-
 app.include_router(review_router)
-
 app.include_router(dashboard_router)
-
 app.include_router(model_router)
-
 app.include_router(metric_router)
-
 app.include_router(officer_router)
-
 app.include_router(auth_router)
-
 app.include_router(transaction_router)
-
 app.include_router(notification_router)
-
-#@app.on_event("startup")
-#def startup():
-#    from ml.inference.predictor import predictor.reload_model()
+app.include_router(websocket_router)
+app.include_router(analytics_router)
+app.include_router(agentic_router)

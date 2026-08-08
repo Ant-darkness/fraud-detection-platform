@@ -31,7 +31,6 @@ def get_leaderboard():
     conn = get_connection()
     try:
         cursor = conn.cursor()
-        # MAREKEBISHO: Tunasoma mr.is_active na mr.model_version moja kwa moja hapa
         cursor.execute("""
             SELECT mr.model_id, mr.model_name, mr.model_version, mr.is_active,
                    mt.precision_score, mt.recall_score, mt.f1_score, mt.roc_auc, mt.fraud_recall, mt.nonfraud_recall
@@ -45,7 +44,6 @@ def get_leaderboard():
                 "model_id": r[0],
                 "model_name": r[1],
                 "model_version": r[2],
-                # Imeongezwa kwa ajili ya kuonyesha Active/Inactive Status
                 "is_active": r[3],
                 "precision_score": r[4],
                 "recall_score": r[5],

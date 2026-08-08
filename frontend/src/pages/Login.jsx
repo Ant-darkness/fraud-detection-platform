@@ -5,7 +5,7 @@ import Forgot from './Forgot';
 import Reset from './Reset';
 
 const Login = ({ showToast }) => {
-  const { login, changeForcePassword, mustChangePassword, setMustChangePassword } = useAuth();
+  const { login, changeForcePassword, setMustChangePassword } = useAuth();
   const { t } = useLanguage();
 
   const [email, setEmail] = useState('');
@@ -32,8 +32,14 @@ const Login = ({ showToast }) => {
       const result = await login(email.trim(), password.trim());
       
       if (result && result.success) {
-        if (result.mustChangePassword === true || mustChangePassword) {
+        if (result.mustChangePassword === true) {
+          if (showToast) showToast("Tafadhali weka nenosiri jipya ili kuendelea.", "info");
           setView('change_pass');
+        } else {
+          if (showToast) showToast("Umeingia kikamilifu!", "success");
+          // Hapa hatuweki useNavigate! 
+          // login() imeshaweka user kwenye AuthContext, 
+          // App.jsx ita-render Dashboard kiutomatiki!
         }
       } else {
         setError(result?.error || "Imeshindikana kuingia kwenye mfumo. Tafadhali angalia taarifa zako.");
@@ -56,10 +62,11 @@ const Login = ({ showToast }) => {
 
     setError('');
     setLoading(true);
+
     try {
       const success = await changeForcePassword(cleanPassword);
       if (success) {
-        showToast("Nenosiri lako jipya limesajiliwa kikamilifu! Sasa unaweza kuingia.", "success");
+        if (showToast) showToast("Nenosiri lako jipya limesajiliwa kikamilifu! Sasa unaweza kuingia.", "success");
         setPassword(''); 
         setNewPassword('');
         setView('login'); 
@@ -74,13 +81,12 @@ const Login = ({ showToast }) => {
   };
 
   return (
-    // Background ya ukurasa mzima inabaki Mfumo wa Zamani (Cyberpunk Dark Black)
     <div className="min-h-screen bg-[#020205] flex items-center justify-center p-6 relative overflow-hidden">
       {/* Glow Effects za Background */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#D4AF37]/10 rounded-full blur-[150px]"></div>
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-pink-600/10 rounded-full blur-[150px]"></div>
 
-      {/* CARD YA KATIKATI: Imepewa Dark Pink Background na Text ya Golden Inayong'aa */}
+      {/* CARD YA KATIKATI */}
       <div className="w-full max-w-md bg-[#4a0429] border border-[#D4AF37]/30 rounded-3xl p-8 backdrop-blur-2xl shadow-[0_0_35px_rgba(74,4,41,0.8)] relative z-10">
         <div className="absolute top-0 left-0 w-full h-[1.5px] bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent"></div>
         
@@ -91,7 +97,6 @@ const Login = ({ showToast }) => {
             className="h-16 w-16 mx-auto object-contain mb-4 drop-shadow-[0_0_15px_rgba(212,175,55,0.5)]"
             onError={(e) => { e.target.src = "https://placehold.co/150?text=BOT"; }}
           />
-          {/* Golden Text Inayong'aa */}
           <h2 className="text-xl font-black text-[#F5E0A3] drop-shadow-[0_0_8px_rgba(212,175,55,0.8)] tracking-widest uppercase">
             BOT FRAUD DETECTION PORTAL
           </h2>
@@ -106,6 +111,7 @@ const Login = ({ showToast }) => {
           </div>
         )}
 
+        {/* FORM YA LOGIN */}
         {view === 'login' && (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -165,6 +171,7 @@ const Login = ({ showToast }) => {
           <Reset setView={setView} showToast={showToast} />
         )}
 
+        {/* FORM YA FORCE CHANGE PASSWORD */}
         {view === 'change_pass' && (
           <form onSubmit={handlePasswordChange} className="space-y-4">
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 mb-4">

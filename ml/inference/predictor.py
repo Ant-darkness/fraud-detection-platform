@@ -22,18 +22,18 @@ class FraudPredictor:
         
         active = get_active_model()
         if active:
-            model_id,model_path, name, version, desc, size = active
+            model_path = active["model_path"]
+            name = active["model_name"]
+            version = active["model_version"] 
             path = model_path  
             if os.path.exists(path):
                 self.model = joblib.load(path)
                 self.model_path = path
                 print(f"Loaded active model {name} v{version} successfully.")
             else:
-                print(f"Model file not found at '{path}'. Using dummy model for now.")
-                self.model = None
+                raise RuntimeError(f"ACTIVE MODEL NOT FOUND: {path} Fraud consumer cannot start.")
         else:
-            print("No active model found in database. Using dummy model.")
-            self.model = None
+            raise RuntimeError("No active model found in model_registry.")
 
     def predict(self, transaction_data) -> dict:
         
@@ -49,11 +49,8 @@ class FraudPredictor:
 
         
         if self.model is None:
-            return {
-                "prediction": False,
-                "fraud_probability": 0.1,  
-                "features": features_df.to_dict(orient="records")[0]
-            }
+            raise RuntimeError(
+            "Fraud prediction requested but no active model is loaded.")
 
         try:
             

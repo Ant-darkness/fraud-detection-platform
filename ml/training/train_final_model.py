@@ -1,6 +1,8 @@
 from pathlib import Path
+import os
 import joblib
 import pandas as pd
+import requests
 
 from lightgbm import LGBMClassifier
 from sklearn.pipeline import Pipeline
@@ -16,6 +18,38 @@ from backend.app.database.connection import get_connection
 
 DATA_PATH = Path("ml/data/fraud_training.parquet")
 MODEL_DIR = Path("ml/models")
+
+# Mawasiliano ya Docker Network na agentic-service
+AGENTIC_SERVICE_URL = os.getenv(
+    "AGENT_SERVICE_URL", "http://agentic-service:8001")
+
+
+def call_model_audit_agent(model_id: int, metrics: dict):
+    """
+    Inatuma ombi kwa agentic-service ili AI iandike description ya kitaalamu na kuisave DB.
+    """
+    url = f"{AGENTIC_SERVICE_URL}/agent/model-audit"
+    payload = {
+        "model_id": model_id,
+        "metrics": {
+            "precision": float(metrics.get("precision", 0.0)),
+            "recall": float(metrics.get("recall", 0.0)),
+            "f1_score": float(metrics.get("f1", 0.0)),
+            "roc_auc": float(metrics.get("roc_auc", 0.0))
+        }
+    }
+
+    try:
+        print(
+            f"🤖 Inatuma metrics kwa ModelAuditAgent [Model ID: {model_id}]...")
+        res = requests.post(url, json=payload, timeout=30.0)
+        if res.status_code == 200:
+            print("✅ ModelAuditAgent imefanikiwa kutengeneza na kuhifadhi description!")
+        else:
+            print(f"⚠️ Agent Error ({res.status_code}): {res.text}")
+    except Exception as e:
+        # Kuzuia training process isicrash hata kama Agent ipo chini
+        print(f"⚠️ Imeshindikana kuwasiliana na ModelAuditAgent: {str(e)}")
 
 
 def get_best_existing_model_metrics():
@@ -99,14 +133,17 @@ def main(DATA_PATH=DATA_PATH):
         joblib.dump(pipeline, model_path)
 
         model_id = register_model(
-            model_name="FraudDetector",
+            model_name=f"FraudDetector_v{version}",
             version=version,
             model_path=model_path.as_posix(),
             dataset_size=len(df),
-            description="LightGBM fraud model"
+            description="Inasubiri uchambuzi wa AI Agent..."  # Utasasishwa na Agent
         )
 
         register_metrics(model_id=model_id, metrics=metrics)
+
+        # 🤖 HAPA NDIPO AGENT INAPOITWA BILA KUVUNJA MFUATANO:
+        call_model_audit_agent(model_id=model_id, metrics=metrics)
 
         # AUTO PROMOTION LOGIC
         if new_f1 > best_f1:

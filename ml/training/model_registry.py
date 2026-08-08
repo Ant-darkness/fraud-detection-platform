@@ -25,7 +25,7 @@ def register_model(
     version,
     model_path,
     dataset_size,
-    description=None
+    description
 ):
 
     conn = get_connection()

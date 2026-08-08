@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { api } from '../services/api';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -11,26 +11,26 @@ const OfficersAdmin = ({ showToast }) => {
   const [formName, setFormName] = useState('');
   const [formUsername, setFormUsername] = useState('');
   const [formEmail, setFormEmail] = useState('');
-  const [formPassword, setFormPassword] = useState(''); // Added to match backend
+  const [formPassword, setFormPassword] = useState('');
   const [formRole, setFormRole] = useState('OFFICER');
 
-  const [activeDialog, setActiveDialog] = useState(null); // { action, officerId }
+  const [activeDialog, setActiveDialog] = useState(null);
 
-  const fetchOfficers = async () => {
+  const fetchOfficers = useCallback(async () => {
     setLoading(true);
     try {
       const data = await api.officers.list();
-      setOfficers(data);
+      setOfficers(data || []);
     } catch (error) {
-      showToast("Imeshindikana kupata orodha ya maafisa.", "error");
+      if (showToast) showToast("Imeshindikana kupata orodha ya maafisa.", "error");
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast]);
 
   useEffect(() => {
     fetchOfficers();
-  }, []);
+  }, [fetchOfficers]);
 
   const handleRegister = (e) => {
     e.preventDefault();
@@ -41,7 +41,7 @@ const OfficersAdmin = ({ showToast }) => {
     try {
       if (activeDialog.action === 'register') {
         await api.officers.register(formName, formUsername, formEmail, formPassword || "AdminPass123!", formRole);
-        showToast("Afisa mpya amesajiliwa kikamilifu kwenye mfumo!", "success");
+        if (showToast) showToast("Afisa mpya amesajiliwa kikamilifu kwenye mfumo!", "success");
         setFormName('');
         setFormUsername('');
         setFormEmail('');
@@ -50,15 +50,15 @@ const OfficersAdmin = ({ showToast }) => {
         const officer = officers.find(o => o.officer_id === activeDialog.officerId);
         if (officer.is_active) {
           await api.officers.disable(officer.officer_id);
-          showToast("Akaunti ya afisa imezimwa.", "success");
+          if (showToast) showToast("Akaunti ya afisa imezimwa.", "success");
         } else {
           await api.officers.enable(officer.officer_id);
-          showToast("Akaunti ya afisa imewashwa upya.", "success");
+          if (showToast) showToast("Akaunti ya afisa imewashwa upya.", "success");
         }
       }
-      await fetchOfficers(); // refresh list
+      await fetchOfficers();
     } catch (error) {
-      showToast("Imeshindikana kukamilisha mabadiliko hayo.", "error");
+      if (showToast) showToast("Imeshindikana kukamilisha mabadiliko hayo.", "error");
     } finally {
       setActiveDialog(null);
     }
@@ -66,110 +66,136 @@ const OfficersAdmin = ({ showToast }) => {
 
   if (loading) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <span className="w-10 h-10 border-4 border-[#D4AF37] border-t-transparent rounded-full animate-spin"></span>
+      <div className="min-h-[50vh] flex items-center justify-center">
+        <span className="w-10 h-10 border-4 border-amber-300 border-t-transparent rounded-full animate-spin"></span>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fadeIn">
-      {/* 1. Register Officer Container (Light Mode) */}
-      <div className="bg-white border border-gray-200/80 rounded-2xl p-6 shadow-sm">
-        <h3 className="text-lg font-bold text-gray-900 mb-6 uppercase tracking-wider flex items-center gap-2">
-          👤 <span>{t('registerOfficer')}</span>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 font-sans">
+      {/* 1. REGISTER OFFICER CONTAINER */}
+      <div className="moss-card border-2 border-white/20 rounded-3xl p-5 sm:p-7 shadow-xl space-y-6">
+        <h3 className="text-sm font-black text-amber-200 uppercase tracking-wider flex items-center gap-2">
+          <span>👤</span> <span>{t('registerOfficer') || 'Sajili Afisa Mpya'}</span>
         </h3>
+        
         <form onSubmit={handleRegister} className="space-y-4">
           <div>
-            <label className="text-xs font-semibold text-gray-600 block mb-1">Full Name</label>
+            <label className="text-[11px] font-extrabold text-amber-100/90 block mb-1.5 uppercase tracking-wider">
+              Jina Bufe (Full Name)
+            </label>
             <input 
               type="text" 
               required
               value={formName}
               onChange={(e) => setFormName(e.target.value)}
-              className="w-full p-3 rounded-xl bg-gray-50 border border-gray-300 text-gray-900 focus:border-[#B8860B] focus:bg-white outline-none text-sm transition-all shadow-sm"
+              className="w-full p-3 rounded-xl moss-card-inner border border-white/20 text-white placeholder-white/40 focus:border-amber-300 outline-none text-xs transition-all shadow-inner"
               placeholder="mf. John Doe"
             />
           </div>
+
           <div>
-            <label className="text-xs font-semibold text-gray-600 block mb-1">Username</label>
+            <label className="text-[11px] font-extrabold text-amber-100/90 block mb-1.5 uppercase tracking-wider">
+              Jina la Kutumia (Username)
+            </label>
             <input 
               type="text" 
               required
               value={formUsername}
               onChange={(e) => setFormUsername(e.target.value)}
-              className="w-full p-3 rounded-xl bg-gray-50 border border-gray-300 text-gray-900 focus:border-[#B8860B] focus:bg-white outline-none text-sm transition-all shadow-sm"
+              className="w-full p-3 rounded-xl moss-card-inner border border-white/20 text-white placeholder-white/40 focus:border-amber-300 outline-none text-xs transition-all shadow-inner font-mono"
               placeholder="mf. jdoe"
             />
           </div>
+
           <div>
-            <label className="text-xs font-semibold text-gray-600 block mb-1">Email Address</label>
+            <label className="text-[11px] font-extrabold text-amber-100/90 block mb-1.5 uppercase tracking-wider">
+              Barua Pepe (Email Address)
+            </label>
             <input 
               type="email" 
               required
               value={formEmail}
               onChange={(e) => setFormEmail(e.target.value)}
-              className="w-full p-3 rounded-xl bg-gray-50 border border-gray-300 text-gray-900 focus:border-[#B8860B] focus:bg-white outline-none text-sm transition-all shadow-sm"
+              className="w-full p-3 rounded-xl moss-card-inner border border-white/20 text-white placeholder-white/40 focus:border-amber-300 outline-none text-xs transition-all shadow-inner"
               placeholder="afisa@bot.go.tz"
             />
           </div>
+
           <div>
-            <label className="text-xs font-semibold text-gray-600 block mb-1">Temporary Password</label>
+            <label className="text-[11px] font-extrabold text-amber-100/90 block mb-1.5 uppercase tracking-wider">
+              Nenosiri la Muda (Temporary Password)
+            </label>
             <input 
               type="password" 
               required
               value={formPassword}
               onChange={(e) => setFormPassword(e.target.value)}
-              className="w-full p-3 rounded-xl bg-gray-50 border border-gray-300 text-gray-900 focus:border-[#B8860B] focus:bg-white outline-none text-sm transition-all shadow-sm"
+              className="w-full p-3 rounded-xl moss-card-inner border border-white/20 text-white placeholder-white/40 focus:border-amber-300 outline-none text-xs transition-all shadow-inner"
               placeholder="••••••••"
             />
           </div>
+
           <div>
-            <label className="text-xs font-semibold text-gray-600 block mb-1">Role Type</label>
+            <label className="text-[11px] font-extrabold text-amber-100/90 block mb-1.5 uppercase tracking-wider">
+              Wadhifa (Role Type)
+            </label>
             <select 
               value={formRole}
               onChange={(e) => setFormRole(e.target.value)}
-              className="w-full p-3 rounded-xl bg-gray-50 border border-gray-300 text-gray-900 focus:border-[#B8860B] focus:bg-white outline-none text-sm transition-all cursor-pointer shadow-sm"
+              className="w-full p-3 rounded-xl moss-card-inner border border-white/20 text-white focus:border-amber-300 outline-none text-xs transition-all cursor-pointer shadow-inner font-bold [&>option]:bg-[#4a5837] [&>option]:text-white"
             >
-              <option value="OFFICER">OFFICER</option>
-              <option value="ADMIN">ADMIN (U-Admini)</option>
+              <option value="OFFICER">OFFICER (Afisa Ukaguzi)</option>
+              <option value="ADMIN">ADMIN (Msimamizi Mkuu)</option>
             </select>
           </div>
+
           <button 
             type="submit" 
-            className="w-full py-3 bg-[#D4AF37] hover:bg-[#B8860B] text-white font-extrabold rounded-xl transition cursor-pointer shadow-sm mt-4 uppercase text-xs tracking-wider"
+            className="w-full py-3.5 bg-amber-300 hover:bg-amber-200 text-slate-950 font-black rounded-xl transition-all cursor-pointer shadow-lg mt-6 uppercase text-xs tracking-widest"
           >
             Sajili Afisa (Submit)
           </button>
         </form>
       </div>
 
-      {/* 2. Officers Directory List (Light Mode) */}
-      <div className="bg-white border border-gray-200/80 rounded-2xl p-6 shadow-sm">
-        <h3 className="text-lg font-bold text-gray-900 mb-6 uppercase tracking-wider flex items-center gap-2">
-          📋 <span>{t('officerList')}</span>
+      {/* 2. OFFICERS DIRECTORY LIST */}
+      <div className="moss-card border-2 border-white/20 rounded-3xl p-5 sm:p-7 shadow-xl space-y-6 flex flex-col">
+        <h3 className="text-sm font-black text-amber-200 uppercase tracking-wider flex items-center gap-2">
+          <span>📋</span> <span>{t('officerList') || 'Orodha ya Maafisa'}</span>
         </h3>
-        <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1 scrollbar-thin">
+
+        <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1 scrollbar-thin flex-1">
           {officers.map(off => (
-            <div key={off.officer_id} className="p-4 bg-gray-50/80 border border-gray-200 rounded-xl flex items-center justify-between hover:bg-gray-100/60 transition-colors">
-              <div>
-                <h4 className="font-bold text-gray-900 text-sm">{off.full_name}</h4>
-                <p className="text-xs text-gray-500 font-mono mt-0.5">{off.email} <span className="text-gray-400">({off.role})</span></p>
+            <div 
+              key={off.officer_id} 
+              className="p-4 moss-card-inner border border-white/20 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-amber-300/40 transition-all shadow-sm"
+            >
+              <div className="space-y-1">
+                <h4 className="font-bold text-white text-xs sm:text-sm">{off.full_name}</h4>
+                <p className="text-[11px] text-amber-100/80 font-mono break-all">
+                  {off.email} <span className="text-amber-300 font-black ml-1">({off.role})</span>
+                </p>
               </div>
+
               <button
                 onClick={() => setActiveDialog({ action: 'toggleAccess', officerId: off.officer_id })}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-extrabold transition cursor-pointer ${
+                className={`self-start sm:self-center px-3.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer border shadow-sm ${
                   off.is_active 
-                    ? 'bg-red-50 text-red-700 border border-red-300 hover:bg-red-600 hover:text-white' 
-                    : 'bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-600 hover:text-white'
+                    ? 'bg-rose-500/20 text-rose-200 border-rose-400 hover:bg-rose-600 hover:text-white' 
+                    : 'bg-emerald-500/20 text-emerald-200 border-emerald-400 hover:bg-emerald-500 hover:text-slate-950'
                 }`}
               >
                 {off.is_active ? 'Disable' : 'Enable'}
               </button>
             </div>
           ))}
+
           {officers.length === 0 && (
-            <p className="text-center text-gray-500 text-sm py-8 font-sans">Hakuna maafisa waliosajiliwa bado.</p>
+            <div className="h-full flex items-center justify-center py-16">
+              <p className="text-amber-100/70 text-xs font-medium">Hakuna maafisa waliosajiliwa bado.</p>
+            </div>
           )}
         </div>
       </div>

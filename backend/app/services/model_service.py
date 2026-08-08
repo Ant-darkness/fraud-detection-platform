@@ -1,11 +1,14 @@
 import os
+import logging
 from backend.app.database.connection import get_connection
+
+logger = logging.getLogger("model_service")
 
 
 def reload_active_model():
     from ml.inference.predictor import predictor
     predictor.reload_model()
-    return {"message": "Active Model reloaded successfully"}
+    return {"message": "Active Model reloaded successfully in memory"}
 
 
 def get_models():
@@ -53,11 +56,8 @@ def activate_model(model_id: int, officer_id: int):
     conn = get_connection()
     try:
         cursor = conn.cursor()
-        # Sheria ya Exclusive Activation: Zima zote zilizokuwa active kwanza
         cursor.execute(
             "UPDATE model_registry SET is_active=FALSE, activation_status='ARCHIVED' WHERE is_active=TRUE")
-
-        # Washa hii iliyochaguliwa sasa hivi
         cursor.execute("""
             UPDATE model_registry
             SET is_active=TRUE, activation_status='ACTIVE', activated_by=%s, activated_at=CURRENT_TIMESTAMP
@@ -71,11 +71,9 @@ def activate_model(model_id: int, officer_id: int):
 
 
 def reject_model(model_id: int):
-    """ Hii inatumika kama Deactivate kutoka kwenye UI """
     conn = get_connection()
     try:
         cursor = conn.cursor()
-        # MUHIMU: Tunazima is_active kuwa FALSE na kuweka REJECTED ili itolewe kwenye RAM/Inference
         cursor.execute("""
             UPDATE model_registry 
             SET activation_status='REJECTED', is_active=FALSE 
@@ -103,15 +101,13 @@ def delete_model(model_id: int):
             raise Exception(
                 "Huwezi kufuta model ambayo ipo ACTIVE kwenye uzalishaji! I-deactivate kwanza.")
 
-        # Futa faili halisi lililopo kwenye folda la Docker Container Volume
         if path and os.path.exists(path):
             try:
                 os.remove(path)
             except Exception as e:
-                print(
-                    f"Onyo: Imeshindikana kufuta faili la mfumo kwenye path: {path}. Sababu: {str(e)}")
+                logger.warning(
+                    f"Imeshindikana kufuta faili kwenye path: {path}. Sababu: {str(e)}")
 
-        # Futa rekodi kutoka kwenye Database baada ya faili kuondolewa
         cursor.execute(
             "DELETE FROM model_registry WHERE model_id=%s", (model_id,))
         conn.commit()

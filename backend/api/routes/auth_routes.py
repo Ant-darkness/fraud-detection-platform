@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr
 from backend.app.services.auth_service import login
 from backend.app.services.password_service import (
@@ -11,14 +11,10 @@ from backend.app.core.dependencies import get_current_officer
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-# --- Schemas ---
-
 
 class LoginRequest(BaseModel):
     email: str
     password: str
-
-# Schema imeboreshwa ili kulazimisha old_password kwa usalama
 
 
 class ChangePasswordRequest(BaseModel):
@@ -35,14 +31,15 @@ class ResetPasswordConfirmRequest(BaseModel):
     new_password: str
 
 
-# --- Endpoints ---
+class ForceChangePasswordRequest(BaseModel):
+    new_password: str
+
 
 @router.post("/login")
 def officer_login(data: LoginRequest):
     try:
         return login(data.email, data.password)
     except Exception as e:
-        # Badala ya kutupa kosa la mfumo (500), tunatupa 401 Unauthorized
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=str(e)
@@ -51,7 +48,6 @@ def officer_login(data: LoginRequest):
 
 @router.post("/change-password")
 def change_password_route(data: ChangePasswordRequest, officer=Depends(get_current_officer)):
-    """Inatumika pale ambapo mtu yupo logged in na anataka kubadili password kwa usalama"""
     try:
         change_password(
             officer_id=officer["officer_id"],
@@ -67,16 +63,15 @@ def change_password_route(data: ChangePasswordRequest, officer=Depends(get_curre
 
 
 @router.post("/forgot-password")
-async def forgot_password(request: ForgotPasswordRequest, background_tasks: BackgroundTasks):
+async def forgot_password(request: ForgotPasswordRequest):
     try:
         token = generate_and_save_token(request.email)
         if token:
-            background_tasks.add_task(
-                send_reset_password_email,
-                request.email,
-                token
-            )
-        return {"message": "Kama akaunti yako ipo kwenye mfumo wetu, tumekutumia maelekezo kwenye barua pepe yako."}
+            await send_reset_password_email(request.email, token)
+        return {
+            "success": True,
+            "message": "Kama akaunti yako ipo kwenye mfumo, token ya usalama imetumwa kwenye barua pepe yako."
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -85,7 +80,8 @@ async def forgot_password(request: ForgotPasswordRequest, background_tasks: Back
 async def reset_password_confirm(request: ResetPasswordConfirmRequest):
     try:
         success = verify_token_and_reset_password(
-            request.token, request.new_password)
+            request.token, request.new_password
+        )
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -97,28 +93,13 @@ async def reset_password_confirm(request: ResetPasswordConfirmRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# 1. Ongeza schema mpya isiyo na old_password
-
-
-class ForceChangePasswordRequest(BaseModel):
-    new_password: str
-
-# 2. Ongeza endpoint hii mpya
-
 
 @router.post("/force-change-password")
 def force_change_password_route(data: ForceChangePasswordRequest, officer=Depends(get_current_officer)):
-    """
-    Inatumika kwa ajili ya mabadiliko ya lazima ya password kwenye login ya kwanza.
-    Haitaji 'old_password'.
-    """
     try:
-        # Hapa tunaita service ya kubadili password, tunapitisha tu password mpya.
-        # Kama 'change_password' service yako inalazimisha old_password, unaweza kuandika
-        # logic ndogo ya update_password moja kwa moja hapa au kupitisha None.
         change_password(
             officer_id=officer["officer_id"],
-            old_password=None,  # Tunaashiria kuwa hii ni force change
+            old_password=None,
             new_password=data.new_password
         )
         return {"message": "Nenosiri la lazima limebadilishwa kikamilifu."}

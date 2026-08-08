@@ -1,4 +1,9 @@
+import logging
 from backend.app.database.connection import get_connection
+from backend.app.services.dashboard_service import live_counter
+
+logger = logging.getLogger("transaction_service")
+
 
 def save_transaction(data: dict):
     conn = get_connection()
@@ -16,35 +21,42 @@ def save_transaction(data: dict):
         ))
         transaction_id = cursor.fetchone()[0]
         conn.commit()
+
+        # 🚀 ONGEZA LIVE COUNTER (In-Memory Atomic Step)
+        live_counter.increment(1)
+
         return transaction_id
+    except Exception as e:
+        conn.rollback()
+        logger.error(f"Failed to save transaction: {str(e)}")
+        raise e
     finally:
         cursor.close()
         conn.close()
+
 
 def get_transaction(transaction_id: int):
     conn = get_connection()
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM transactions WHERE transaction_id=%s", (transaction_id,))
+        cursor.execute(
+            "SELECT * FROM transactions WHERE transaction_id=%s", (transaction_id,))
         return cursor.fetchone()
     finally:
         cursor.close()
         conn.close()
-        
+
 
 def get_transactions(page: int = 1, limit: int = 15):
     conn = get_connection()
     try:
         cursor = conn.cursor()
 
-        # 1. Hesabu miamala yote iliyopo kwa ajili ya hesabu ya kurasa za Frontend
         cursor.execute("SELECT COUNT(*) FROM transactions")
         total_count = cursor.fetchone()[0]
 
-        # 2. Kokotoa offset (unapoanzia kusoma miamala)
         offset = (page - 1) * limit
 
-        # 3. MAREKEBISHO: Tumeondoa transaction_id, tukaleta nguzo zote za salio (balance fields)
         cursor.execute("""
             SELECT step, type, amount, oldbalanceorg, newbalanceorig, 
                    oldbalancedest, newbalancedest, created_at
@@ -53,7 +65,6 @@ def get_transactions(page: int = 1, limit: int = 15):
             LIMIT %s OFFSET %s
         """, (limit, offset))
 
-        # Badilisha kuwa orodha ya dictionaries ili kurahisisha usomaji JSON kule FastAPI
         columns = [desc[0] for desc in cursor.description]
         transactions = [dict(zip(columns, row)) for row in cursor.fetchall()]
 

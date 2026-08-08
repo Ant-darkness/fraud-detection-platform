@@ -5,7 +5,7 @@ import { useWebSocket } from '../context/WebSocketContext';
 
 const Transactions = ({ showToast }) => {
   const { t } = useLanguage();
-  const wsContext = useWebSocket(); // Safe extraction kuzuia destructuring crash
+  const wsContext = useWebSocket();
   const lastMessage = wsContext ? wsContext.lastMessage : null;
 
   const [transactions, setTransactions] = useState([]);
@@ -16,7 +16,7 @@ const Transactions = ({ showToast }) => {
   const [limit] = useState(15); 
   const [totalCount, setTotalCount] = useState(0);
 
-  const MAX_LIVE_BUFFER = 1000; // Ukomo wa miamala 1,000 kwenye memory
+  const MAX_LIVE_BUFFER = 1000;
 
   // 1. Initial Load kutoka Database
   useEffect(() => {
@@ -40,9 +40,9 @@ const Transactions = ({ showToast }) => {
     };
 
     fetchTransactions();
-  }, [currentPage, limit]);
+  }, [currentPage, limit, showToast]);
 
-  // 2. LIVE WEBSOCKET ENGINE (WITH 1,000 LIMIT RESET)
+  // 2. LIVE WEBSOCKET ENGINE
   useEffect(() => {
     if (!lastMessage || lastMessage.event_type !== 'NEW_TRANSACTION') return;
 
@@ -50,17 +50,15 @@ const Transactions = ({ showToast }) => {
     if (!transaction) return;
 
     setTransactions((prevTx) => {
-      // Kama miamala imefika au kuvuka 1,000, inasafishwa na kuanza upya na muamala huu mpya
       if (prevTx.length >= MAX_LIVE_BUFFER) {
         if (showToast) showToast("⚡ Live feed status: Miamala imefika 1,000. Buffer imesafishwa!", "info");
         return [transaction];
       }
-      // Ingiza muamala mpya juu kabisa
       return [transaction, ...prevTx];
     });
 
     setTotalCount((prev) => prev + 1);
-  }, [lastMessage]);
+  }, [lastMessage, showToast]);
 
   const totalPages = Math.ceil(totalCount / limit) || 1;
 
@@ -79,87 +77,88 @@ const Transactions = ({ showToast }) => {
   };
 
   return (
-    <div className={`transition-all duration-300 font-sans ${
+    <div className={`transition-all duration-300 font-sans select-none bg-[#F2C4CE] text-slate-900 border border-pink-300/80 shadow-2xl ${
       isMaximized 
-        ? 'fixed inset-2 md:inset-4 z-50 bg-white/98 border border-[#D4AF37] backdrop-blur-3xl rounded-3xl p-6 md:p-8 flex flex-col justify-between shadow-2xl overflow-hidden' 
-        : 'bg-white border border-gray-200/80 shadow-sm rounded-2xl p-6 relative overflow-hidden'
+        ? 'fixed inset-2 md:inset-4 z-50 rounded-3xl p-4 sm:p-6 md:p-8 flex flex-col justify-between overflow-hidden' 
+        : 'rounded-3xl p-4 sm:p-6 relative overflow-hidden'
     }`}>
-      <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#D4AF37]/60 to-transparent"></div>
-
-      {/* KICHWA CHA UKURASA */}
+      
+      {/* HEADER SECTION */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 shrink-0">
-        <div className="flex items-center gap-3">
-          <h3 className="text-lg font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2">
+        <div className="flex items-center gap-3 flex-wrap">
+          <h3 className="text-sm sm:text-base font-black text-slate-950 uppercase tracking-wider flex items-center gap-2">
             <span>⚡</span> LIVE TRANSACTIONS FEED
           </h3>
           <button
             type="button"
             onClick={() => setIsMaximized(!isMaximized)}
-            className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-800 rounded-xl text-[11px] font-black tracking-wider uppercase transition-all flex items-center gap-1 cursor-pointer shadow-sm"
-            title={isMaximized ? t('btnMinimize') : t('btnMaximize')}
+            className="px-3 py-1.5 bg-slate-950 hover:bg-slate-900 text-pink-200 border border-slate-800 rounded-xl text-xs font-extrabold tracking-wider uppercase transition-all flex items-center gap-1 cursor-pointer shadow-md"
           >
             {isMaximized ? `🗗 ${t('btnMinimize') || 'Minimize'}` : `🗖 ${t('btnMaximize') || 'Maximize'}`}
           </button>
         </div>
         
-        <div className="flex items-center gap-4">
-          <div className="text-xs text-gray-500 font-mono bg-amber-50 border border-amber-200 px-3 py-1 rounded-xl">
-            Live Buffer: <strong className="text-amber-800">{transactions.length}/{MAX_LIVE_BUFFER}</strong>
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+          <div className="text-xs font-bold text-slate-100 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 shadow-sm font-mono">
+            Live Buffer: <span className="text-pink-300 font-black">{transactions.length}/{MAX_LIVE_BUFFER}</span>
           </div>
-          <div className="text-xs text-gray-600 bg-gray-50 border border-gray-200 px-3 py-1 rounded-xl font-sans">
-            {t('txTotal') || 'Jumla'}: <span className="text-[#B8860B] font-bold">{totalCount.toLocaleString()}</span> {t('txItems') || 'miamala'}
+          <div className="text-xs font-bold text-slate-100 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 shadow-sm">
+            {t('txTotal') || 'Jumla'}: <span className="text-pink-300 font-mono font-black">{totalCount.toLocaleString()}</span> {t('txItems') || 'miamala'}
           </div>
         </div>
       </div>
 
+      {/* CONTENT & TABLE SECTION */}
       {loading && transactions.length === 0 ? (
         <div className="grow flex items-center justify-center min-h-[40vh]">
-          <span className="w-8 h-8 border-3 border-[#D4AF37] border-t-transparent rounded-full animate-spin"></span>
+          <span className="w-10 h-10 border-4 border-slate-950 border-t-transparent rounded-full animate-spin"></span>
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto grow border border-gray-200 rounded-xl bg-gray-50/50 scrollbar-thin">
-            <table className="w-full text-left border-collapse min-w-[1200px]">
+          <div className="overflow-x-auto grow bg-slate-950/5 rounded-2xl border border-pink-300/80 scrollbar-thin">
+            <table className="w-full text-left border-collapse min-w-[950px] sm:min-w-[1100px]">
               <thead>
-                <tr className="border-b border-gray-200 text-xs text-gray-600 bg-gray-100/80 uppercase tracking-wider font-bold">
-                  <th className="py-4 px-5">Muda / Step</th>
-                  <th className="py-4 px-5">Aina (Type)</th>
-                  <th className="py-4 px-5">Kiasi (Amount)</th>
-                  <th className="py-4 px-5 bg-blue-50/60 text-blue-900">Mtumaji (Orig Account)</th>
-                  <th className="py-4 px-5 bg-blue-50/60 text-blue-900">Salio Jipya (Orig)</th>
-                  <th className="py-4 px-5 bg-purple-50/60 text-purple-900">Mpokeaji (Dest Account)</th>
-                  <th className="py-4 px-5 bg-purple-50/60 text-purple-900">Salio Jipya (Dest)</th>
+                <tr className="bg-pink-300/40 border-b border-pink-300/80 text-xs text-pink-950 uppercase tracking-wider font-black">
+                  <th className="py-3.5 px-4">Muda / Step</th>
+                  <th className="py-3.5 px-4">Aina (Type)</th>
+                  <th className="py-3.5 px-4">Kiasi (Amount)</th>
+                  <th className="py-3.5 px-4 bg-pink-300/20">Mtumaji (Orig Account)</th>
+                  <th className="py-3.5 px-4 bg-pink-300/20">Salio Jipya (Orig)</th>
+                  <th className="py-3.5 px-4 bg-pink-300/30">Mpokeaji (Dest Account)</th>
+                  <th className="py-3.5 px-4 bg-pink-300/30">Salio Jipya (Dest)</th>
                 </tr>
               </thead>
-              <tbody className="text-xs text-gray-800 divide-y divide-gray-200 font-mono">
+              <tbody className="text-xs sm:text-sm text-slate-950 divide-y divide-pink-300/50 font-mono">
                 {transactions.map((tx, index) => (
-                  <tr key={tx.transaction_id || tx.id || index} className="hover:bg-amber-50/30 transition-colors animate-fadeIn">
-                    <td className="py-4 px-5 text-gray-500 font-bold">{formatTimeOrStep(tx)}</td>
-                    <td className="py-4 px-5">
-                      <span className="bg-blue-50 border border-blue-200 px-2 py-0.5 rounded text-[10px] font-bold text-blue-700 uppercase">
+                  <tr key={tx.transaction_id || tx.id || index} className="hover:bg-pink-300/20 transition-colors">
+                    <td className="py-3 px-4 text-pink-950 font-bold whitespace-nowrap">
+                      {formatTimeOrStep(tx)}
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="bg-slate-950 text-pink-300 border border-slate-800 px-2 py-0.5 rounded text-[10px] font-black uppercase shadow-sm">
                         {tx.type || "TRANSFER"}
                       </span>
                     </td>
-                    <td className="py-4 px-5 font-bold text-emerald-700 text-sm">
+                    <td className="py-3 px-4 font-black text-slate-950 whitespace-nowrap">
                       TZS {Number(tx.amount || 0).toLocaleString()}
                     </td>
-                    <td className="py-4 px-5 bg-blue-50/30 text-gray-700">
+                    <td className="py-3 px-4 text-slate-900 font-sans font-semibold">
                       {tx.nameorig || tx.nameOrig || "N/A"}
                     </td>
-                    <td className="py-4 px-5 bg-blue-50/30 text-gray-900 font-bold">
+                    <td className="py-3 px-4 text-slate-950 font-black whitespace-nowrap">
                       TZS {Number(tx.newbalanceorig ?? tx.newbalanceOrig ?? 0).toLocaleString()}
                     </td>
-                    <td className="py-4 px-5 bg-purple-50/30 text-gray-700">
+                    <td className="py-3 px-4 text-slate-900 font-sans font-semibold">
                       {tx.namedest || tx.nameDest || "N/A"}
                     </td>
-                    <td className="py-4 px-5 bg-purple-50/30 text-gray-900 font-bold">
+                    <td className="py-3 px-4 text-slate-950 font-black whitespace-nowrap">
                       TZS {Number(tx.newbalancedest ?? tx.newbalanceDest ?? 0).toLocaleString()}
                     </td>
                   </tr>
                 ))}
                 {transactions.length === 0 && (
                   <tr>
-                    <td colSpan="7" className="py-12 text-center text-gray-500 text-sm font-sans">
+                    <td colSpan="7" className="py-12 text-center text-pink-950 text-xs font-sans font-extrabold">
                       Hakuna miamala inayoingia kwa sasa.
                     </td>
                   </tr>
@@ -168,26 +167,27 @@ const Transactions = ({ showToast }) => {
             </table>
           </div>
 
+          {/* PAGINATION */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200 shrink-0">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-6 pt-4 border-t border-pink-300/80 shrink-0">
               <button
                 type="button"
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                className="px-4 py-2 bg-gray-100 border border-gray-200 rounded-xl text-xs font-bold uppercase tracking-wider text-gray-800 hover:bg-gray-200 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                className="w-full sm:w-auto px-4 py-2 bg-slate-950 hover:bg-slate-900 border border-slate-800 rounded-xl text-xs font-black uppercase tracking-wider text-pink-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-md"
               >
                 ◀ Ukurasa Uliopita
               </button>
               
-              <span className="text-xs text-gray-600 font-sans">
-                Ukurasa <span className="text-gray-900 font-bold">{currentPage}</span> kati ya <span className="text-gray-900 font-bold">{totalPages}</span>
+              <span className="text-xs text-pink-950 font-bold">
+                Ukurasa <span className="text-slate-950 font-black">{currentPage}</span> kati ya <span className="text-slate-950 font-black">{totalPages}</span>
               </span>
 
               <button
                 type="button"
                 disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                className="px-4 py-2 bg-gray-100 border border-gray-200 rounded-xl text-xs font-bold uppercase tracking-wider text-gray-800 hover:bg-gray-200 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                className="w-full sm:w-auto px-4 py-2 bg-slate-950 hover:bg-slate-900 border border-slate-800 rounded-xl text-xs font-black uppercase tracking-wider text-pink-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-md"
               >
                 Ukurasa Unaofuata ▶
               </button>

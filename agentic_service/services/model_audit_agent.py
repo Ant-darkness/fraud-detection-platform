@@ -16,20 +16,21 @@ class ModelAuditAgent:
         if not client:
             raise ValueError("GEMINI_API_KEY haijawekwa au haipatikani.")
 
-        # 1. Tumia default=str kuzuia TypeError kama metrics ina float64, Decimal, au datetime
+        # 1. Tumia default=str kuzuia TypeError kama metrics ina float64
         try:
             formatted_metrics = json.dumps(metrics, default=str)
         except Exception as e:
-            raise ValueError(f"Imeshindikana kubadilisha metrics kuwa JSON: {str(e)}")
+            raise ValueError(
+                f"Imeshindikana kubadilisha metrics kuwa JSON: {str(e)}")
 
-        prompt = f"Model ID: {model_id}. Metrics: {formatted_metrics}. Generate detailed description and recommendation."
+        prompt = f"Model ID: {model_id}. Metrics: {formatted_metrics}. Generate concise 50-100 word technical description."
 
         config = types.GenerateContentConfig(
             system_instruction=MODEL_AUDIT_SYSTEM_PROMPT,
             response_mime_type="application/json"
         )
 
-        # 2. Tuma ombi kwa Gemini API na shika makosa ya API
+        # 2. Tuma ombi kwa Gemini API
         try:
             response = client.models.generate_content(
                 model=GEMINI_MODEL_NAME,
@@ -37,27 +38,28 @@ class ModelAuditAgent:
                 config=config
             )
         except Exception as e:
-            raise RuntimeError(f"Kosa limetokea wakati wa kuwasiliana na Gemini API: {str(e)}")
+            raise RuntimeError(
+                f"Kosa limetokea wakati wa kuwasiliana na Gemini API: {str(e)}")
 
-        # 3. Hakikisha kuwa response.text ipo
         if not response or not response.text:
-            raise ValueError("Model haikurudisha majibu yoyote (huenda yamezuiwa na Safety Filters).")
+            raise ValueError(
+                "Model haikurudisha majibu yoyote (huenda yamezuiwa na Safety Filters).")
 
-        # 4. Handle JSON Parsing kwa usalama
+        # 3. Handle JSON Parsing
         try:
             audit_res = json.loads(response.text)
         except json.JSONDecodeError:
-            raise ValueError(f"Jibu kutoka kwa AI halikuwa kwenye muundo halali wa JSON: {response.text}")
+            raise ValueError(
+                f"Jibu kutoka kwa AI halikuwa kwenye muundo halali wa JSON: {response.text}")
 
         description_text = audit_res.get("technical_description", "")
-        recommendation_text = audit_res.get("deployment_recommendation", "PENDING")
+        recommendation_text = audit_res.get(
+            "deployment_recommendation", "PENDING")
 
-        # 5. Kuhifadhi kwenye Database kwa usalama (Transaction Handling)
+        # 4. Kuhifadhi kwenye model_registry (column: model_description)
         update_query = text("""
             UPDATE model_registry 
-            SET agent_description = :desc,
-                recommendation = :rec,
-                updated_at = NOW()
+            SET model_description = :desc
             WHERE model_id = :m_id
         """)
 
@@ -65,21 +67,20 @@ class ModelAuditAgent:
             with engine.begin() as conn:
                 result = conn.execute(update_query, {
                     "desc": description_text,
-                    "rec": recommendation_text,
                     "m_id": model_id
                 })
-                
-                # Hiari: Angalia kama model_id kweli ilipatikana na ku-update-wa
+
                 if result.rowcount == 0:
-                    raise ValueError(f"Model yenye ID {model_id} haikupatikana kwenye database.")
-                    
+                    raise ValueError(
+                        f"Model yenye ID {model_id} haikupatikana kwenye database.")
+
         except SQLAlchemyError as e:
-            raise RuntimeError(f"Kosa limetokea wakati wa kuhifadhi audit kwenye Database: {str(e)}")
+            raise RuntimeError(
+                f"Kosa limetokea wakati wa kuhifadhi audit kwenye Database: {str(e)}")
 
         return {
             "success": True,
             "model_id": model_id,
             "saved_description": description_text,
-            "saved_recommendation": recommendation_text,
-            "audit_details": audit_res
+            "recommendation": recommendation_text
         }

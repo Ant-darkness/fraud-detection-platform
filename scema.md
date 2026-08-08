@@ -193,21 +193,5 @@ CREATE TABLE password_reset_tokens (
         ON DELETE CASCADE
 );
 
-UPDATE officers
-SET password_hash = 'Admin@123', must_change_password = TRUE
-WHERE email = 'admin@bot.go.tz';
-
 CREATE INDEX idx_reset_token ON password_reset_tokens(token_hash);
 `
-
-Threshold  Fraud Recall  Precision
-0.20       95%           10%
-0.40       85%           35%
-0.60       70%           70%
-0.80       45%           90%
-
-npm install react-router-dom axios react-hook-form react-hot-toast recharts jwt-decode
-
-npm install lucide-react
-
-npm install -D tailwindcss @tailwindcss/vite

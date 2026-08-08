@@ -92,6 +92,9 @@ FOR DEPLOYMENT
 # na itapuuza hii ya Windows kwa sababu 'os.getenv' inapata jibu!
 PROJECT_ROOT_PATH = os.getenv("HOST_PROJECT_PATH", "C:/Users/Abely/Desktop/fraud-detection-platform")
 
+`RUN SCRIPT WITHIN CONTAINER`
+docker compose run --rm ml-training python -m ml.training.train_final_model
+
 
 
 

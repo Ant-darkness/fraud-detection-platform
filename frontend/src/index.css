@@ -1,108 +1,77 @@
 @import "tailwindcss";
 
-/* --- CUSTOM THEME CONFIGURATION (Tailwind v4 Style) --- */
+/* --- LIQUID GLASS & BLUSH THEME CONFIGURATION --- */
 @theme {
-    /* Background rasmi ya kitaalamu isiyong'aa sana (Soft Slate White) */
-    --color-brand-dark: #f8fafc;
-    --color-brand-card: rgba(15, 23, 42, 0.03);
+    /* Glassmorphism Defaults */
+    --color-glass-bg: rgba(15, 23, 42, 0.65);
+    --color-glass-border: rgba(255, 255, 255, 0.12);
+    --color-glass-hover: rgba(255, 255, 255, 0.18);
+    --color-glass-card: rgba(30, 41, 59, 0.45);
 
-    --color-neon-green: #059669;
-    /* Extended emerald tone kwa ajili ya light mode */
-    --color-neon-red: #dc2626;
-    /* Extended deep red tone */
-    --color-neon-cyan: #0284c7;
-    /* Deep technical cyan */
-
-    --animate-slide-in: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    /* Blush Palette Theme */
+    --color-blush-main: #F2C4CE;
+    --color-blush-border: rgba(242, 196, 206, 0.8);
+    --color-blush-hover: rgba(242, 196, 206, 0.2);
+    --color-blush-subtle: rgba(242, 196, 206, 0.1);
 }
 
-/* --- GLOBAL STYLES & LIGHT PROFESSIONAL RESET --- */
 @layer base {
+    html {
+        font-size: 15px;
+    }
+
     body {
-        background-color: var(--color-brand-dark);
-        color: #0f172a;
-        /* Text color ya black/slate nzito ili zionekane vizuri */
+        background-color: #030712;
+        color: #f8fafc;
         font-family: 'Inter', system-ui, -apple-system, sans-serif;
-        overflow-x: hidden;
-
-        /* Soft professional ambient lighting badala ya dark grid */
-        background-image:
-            radial-gradient(circle at 50% 0%, rgba(210, 220, 235, 0.4) 0%, transparent 60%),
-            radial-gradient(circle at 10% 80%, rgba(220, 225, 235, 0.3) 0%, transparent 40%),
-            radial-gradient(circle at 90% 90%, rgba(225, 230, 240, 0.3) 0%, transparent 40%);
+        overflow: hidden;
+        min-height: 100vh;
     }
 }
 
-/* --- GLASSMORPHISM UTILITIES FOR LIGHT THEME (Inaonekana vizuri sana mchana) --- */
-@utility glassmorphism {
-    background: rgba(255, 255, 255, 0.75) !important;
-    backdrop-filter: blur(25px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(25px) saturate(180%) !important;
-    border: 1px solid rgba(226, 232, 240, 0.8) !important;
-    box-shadow:
-        0 4px 20px rgba(15, 23, 42, 0.05),
-        inset 0 1px 1px rgba(255, 255, 255, 0.9);
+/* Glassmorphism Utilities (Imeachwa kama ilivyokuwa kwa ajili ya Sidebar & Topbar) */
+@utility glass-card {
+    background: rgba(15, 23, 42, 0.55) !important;
+    backdrop-filter: blur(16px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37) !important;
 }
 
-@utility glassmorphism-active {
-    background: rgba(255, 255, 255, 0.9) !important;
-    -webkit-backdrop-filter: blur(30px) !important;
-    backdrop-filter: blur(30px) !important;
-    border: 1px solid rgba(212, 175, 55, 0.4) !important;
-    box-shadow:
-        0 0 25px rgba(212, 175, 55, 0.15),
-        inset 0 1px 1px rgba(255, 255, 255, 1);
+@utility glass-card-inner {
+    background: rgba(255, 255, 255, 0.05) !important;
+    backdrop-filter: blur(8px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 
-/* --- GLOWING & HIGHLIGHT EFFECTS FOR LIGHT THEME --- */
-@utility text-glow-cyan {
-    text-shadow: 0 0 8px rgba(2, 132, 199, 0.2);
+/* Blush Utility khusus kwa ajili ya Content Area pekee (Transactions, Charts, Analytics) */
+@utility blush-card {
+    background: #F2C4CE !important;
+    color: #0f172a !important;
+    border: 1px solid rgba(242, 196, 206, 0.8) !important;
+    box-shadow: 0 10px 30px -10px rgba(242, 196, 206, 0.3) !important;
 }
 
-@utility text-glow-green {
-    text-shadow: 0 0 8px rgba(5, 150, 105, 0.2);
+@utility blush-card-inner {
+    background: rgba(15, 23, 42, 0.05) !important;
+    border: 1px solid rgba(242, 196, 206, 0.6) !important;
 }
 
-@utility text-glow-red {
-    text-shadow: 0 0 8px rgba(220, 38, 38, 0.2);
-}
-
-@utility border-glow-neon {
-    box-shadow: inset 0 0 10px rgba(2, 132, 199, 0.08), 0 0 10px rgba(2, 132, 199, 0.08);
-}
-
-/* --- CUSTOM KEYFRAMES FOR TOAST ANIMATION --- */
-@keyframes slideIn {
-    from {
-        transform: translateY(100px) scale(0.9);
-        opacity: 0;
-    }
-
-    to {
-        transform: translateY(0) scale(1);
-        opacity: 1;
-    }
-}
-
-.animate-slideIn {
-    animation: var(--animate-slide-in);
-}
-
-/* Custom Scrollbar for sleek professional light theme */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-    background: #f1f5f9;
+    background: rgba(3, 7, 18, 0.5);
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
+    background: rgba(255, 255, 255, 0.2);
     border-radius: 99px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #D4AF37;
+    background: #F2C4CE;
 }

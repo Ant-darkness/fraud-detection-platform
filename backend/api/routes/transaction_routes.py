@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Query
-from typing import Optional
 from backend.app.services.transaction_service import get_transaction, get_transactions
 
 router = APIRouter(prefix="/transactions", tags=["Transactions"])

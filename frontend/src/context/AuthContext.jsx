@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '../services/api';
-// Kama unatumia react-hot-toast:
 import { toast } from 'react-hot-toast'; 
 
 const AuthContext = createContext();
@@ -16,11 +15,9 @@ export const AuthProvider = ({ children }) => {
   });
 
   const [mustChangePassword, setMustChangePassword] = useState(false);
-  
-  // Kutunza taarifa za muda za login kabla ya kubadili password ya lazima
   const [tempUser, setTempUser] = useState(null);
 
-  // Kufuatilia usalama wa Session (dakika 5 za kutofanya kazi)
+  // Kufuatilia usalama wa Session (Dakika 5)
   useEffect(() => {
     const checkSession = () => {
       if (user) {
@@ -29,7 +26,6 @@ export const AuthProvider = ({ children }) => {
         if (inactiveTime > 300000) { // Dakika 5
           logout();
           
-          // Toastbadala ya alert ya juu
           toast.error("Kipindi chako kimeisha kwa usalama. Tafadhali ingia tena.", {
             duration: 5000,
             position: 'top-right',
@@ -72,19 +68,19 @@ export const AuthProvider = ({ children }) => {
       const data = await api.auth.login(email.trim(), password.trim());
       
       const loggedInUser = {
-        officer_id: data.officer.officer_id,
-        full_name: data.officer.full_name,
+        officer_id: data.officer?.officer_id || data.officer_id,
+        full_name: data.officer?.full_name || data.full_name,
         email: email.trim().toLowerCase(),
-        role: data.officer.role,
+        role: data.officer?.role || data.role,
         token: data.access_token 
       };
 
-      // Uhakiki thabiti wa lazima ya kubadili password
+      // Uhakiki thabiti wa kubadili password ya lazima
       const needsChange = data.must_change_password === true || data.mustChangePassword === true;
 
       if (needsChange) {
         setMustChangePassword(true);
-        setTempUser(loggedInUser); // Mtunze hapa ili tutumie token yake kwenye header ya force change
+        setTempUser(loggedInUser); // Mtunze hapa kwa ajili ya Bearer token wakati wa force change
         return { success: true, mustChangePassword: true };
       } else {
         setMustChangePassword(false);
@@ -107,10 +103,9 @@ export const AuthProvider = ({ children }) => {
         throw new Error("Kipindi cha muda cha mabadiliko ya nenosiri kimeisha. Tafadhali ingia tena.");
       }
 
-      // Piga API ya force change ikisindikizwa na Bearer token yake ya muda
       await api.auth.forceChangePassword(newPassword.trim(), tokenToUse);
       
-      // Kusafisha data zote za muda baada ya mafanikio ili kumlazimisha mtumiaji alogin upya kwa usalama
+      // Kusafisha data za muda na kumwajibisha aingie upya na password mpya
       setMustChangePassword(false);
       setTempUser(null); 
       return true;

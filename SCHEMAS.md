@@ -181,6 +181,7 @@ CREATE TABLE fraud_review_queue (
 
 TRAINING_RUNS TABLE
 ```PostgreSQL
+DROP TABLE IF EXISTS training_runs CASCADE;
 CREATE TABLE training_runs (
 
     run_id BIGSERIAL PRIMARY KEY,

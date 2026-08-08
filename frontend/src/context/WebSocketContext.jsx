@@ -1,7 +1,6 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { api } from '../services/api';
 
-// Safe default values kuzuia null destructuring error
 const defaultContextValue = {
   lastMessage: null,
   isConnected: false,
@@ -12,41 +11,52 @@ const WebSocketContext = createContext(defaultContextValue);
 export const WebSocketProvider = ({ children }) => {
   const [lastMessage, setLastMessage] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
+  const socketRef = useRef(null);
+  const reconnectTimeoutRef = useRef(null);
 
   useEffect(() => {
-    let socket = null;
-    let reconnectInterval = null;
+    let isMounted = true;
 
     const connectWS = () => {
       try {
-        socket = api.ws.connect(
+        if (socketRef.current) {
+          socketRef.current.close();
+        }
+
+        socketRef.current = api.ws.connect(
           (data) => {
+            if (!isMounted) return;
             setIsConnected(true);
             setLastMessage(data);
           },
           (error) => {
-            console.error("WebSocket connection error:", error);
+            if (!isMounted) return;
+            console.error('WebSocket connection error:', error);
             setIsConnected(false);
+            scheduleReconnect();
           }
         );
       } catch (err) {
-        console.error("Failed to establish WebSocket connection:", err);
+        if (!isMounted) return;
+        console.error('Failed to establish WebSocket connection:', err);
         setIsConnected(false);
+        scheduleReconnect();
       }
+    };
+
+    const scheduleReconnect = () => {
+      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = setTimeout(() => {
+        if (isMounted) connectWS();
+      }, 5000);
     };
 
     connectWS();
 
-    // Auto-reconnect check kila baada ya sekunde 5 kama connection ikikatika
-    reconnectInterval = setInterval(() => {
-      if (!socket || socket.readyState === WebSocket.CLOSED) {
-        connectWS();
-      }
-    }, 5000);
-
     return () => {
-      if (socket) socket.close();
-      if (reconnectInterval) clearInterval(reconnectInterval);
+      isMounted = false;
+      if (socketRef.current) socketRef.current.close();
+      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
     };
   }, []);
 
@@ -57,11 +67,7 @@ export const WebSocketProvider = ({ children }) => {
   );
 };
 
-// Hook salama inayorejesha default state ikiwa mbali na provider
 export const useWebSocket = () => {
   const context = useContext(WebSocketContext);
-  if (!context) {
-    return defaultContextValue;
-  }
-  return context;
+  return context || defaultContextValue;
 };

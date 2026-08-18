@@ -1,0 +1,31 @@
+{
+    "name": "local-db-connector",
+    "config": {
+      "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+      "plugin.name": "pgoutput",
+      "slot.name": "local_bot_fraud_slot",
+      "publication.name": "local_bot_fraud_publication",
+      "publication.autocreate.mode": "filtered",
+  
+      "database.hostname": "host.docker.internal",
+      "database.port": "5432",
+      "database.user": "postgres",
+      "database.password": "18922002",
+      "database.dbname": "fraud_db",
+  
+      "topic.prefix": "local_cdc",
+      "table.include.list": "public.transactions",
+      "snapshot.mode": "initial",
+  
+      "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+      "key.converter.schemas.enable": "false",
+      "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+      "value.converter.schemas.enable": "false",
+  
+      "transforms": "unwrap",
+      "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
+      "transforms.unwrap.drop.tombstones": "true",
+      "transforms.unwrap.delete.handling.mode": "drop"
+    }
+  }
+  

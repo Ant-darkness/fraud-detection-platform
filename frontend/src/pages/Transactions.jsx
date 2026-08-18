@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { api } from '../services/api';
 import { useWebSocket } from '../context/WebSocketContext';
@@ -18,6 +18,12 @@ const Transactions = ({ showToast }) => {
 
   const MAX_LIVE_BUFFER = 1000;
 
+  const notify = useCallback((msg, type = 'info') => {
+    if (typeof showToast === 'function') {
+      showToast(msg, type);
+    }
+  }, [showToast]);
+
   // 1. Initial Load kutoka Database
   useEffect(() => {
     const fetchTransactions = async () => {
@@ -33,14 +39,14 @@ const Transactions = ({ showToast }) => {
           setTotalCount(list.length);
         }
       } catch (error) {
-        if (showToast) showToast("Imeshindikana kupakia orodha ya miamala ya kweli.", "error");
+        notify("Imeshindikana kupakia orodha ya miamala ya kweli.", "error");
       } finally {
         setLoading(false);
       }
     };
 
     fetchTransactions();
-  }, [currentPage, limit, showToast]);
+  }, [currentPage, limit, notify]);
 
   // 2. LIVE WEBSOCKET ENGINE
   useEffect(() => {
@@ -51,14 +57,14 @@ const Transactions = ({ showToast }) => {
 
     setTransactions((prevTx) => {
       if (prevTx.length >= MAX_LIVE_BUFFER) {
-        if (showToast) showToast("⚡ Live feed status: Miamala imefika 1,000. Buffer imesafishwa!", "info");
+        notify("⚡ Live feed status: Miamala imefika 1,000. Buffer imesafishwa!", "info");
         return [transaction];
       }
       return [transaction, ...prevTx];
     });
 
     setTotalCount((prev) => prev + 1);
-  }, [lastMessage, showToast]);
+  }, [lastMessage, notify]);
 
   const totalPages = Math.ceil(totalCount / limit) || 1;
 
@@ -71,7 +77,7 @@ const Transactions = ({ showToast }) => {
       }
     }
     if (tx.step !== undefined && tx.step !== null) {
-      return `${t('txStepLabel') || 'Step'} ${tx.step}`;
+      return `${t?.('txStepLabel') || 'Step'} ${tx.step}`;
     }
     return "N/A";
   };
@@ -94,7 +100,7 @@ const Transactions = ({ showToast }) => {
             onClick={() => setIsMaximized(!isMaximized)}
             className="px-3 py-1.5 bg-slate-950 hover:bg-slate-900 text-pink-200 border border-slate-800 rounded-xl text-xs font-extrabold tracking-wider uppercase transition-all flex items-center gap-1 cursor-pointer shadow-md"
           >
-            {isMaximized ? `🗗 ${t('btnMinimize') || 'Minimize'}` : `🗖 ${t('btnMaximize') || 'Maximize'}`}
+            {isMaximized ? `🗗 ${t?.('btnMinimize') || 'Minimize'}` : `🗖 ${t?.('btnMaximize') || 'Maximize'}`}
           </button>
         </div>
         
@@ -103,7 +109,7 @@ const Transactions = ({ showToast }) => {
             Live Buffer: <span className="text-pink-300 font-black">{transactions.length}/{MAX_LIVE_BUFFER}</span>
           </div>
           <div className="text-xs font-bold text-slate-100 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 shadow-sm">
-            {t('txTotal') || 'Jumla'}: <span className="text-pink-300 font-mono font-black">{totalCount.toLocaleString()}</span> {t('txItems') || 'miamala'}
+            {t?.('txTotal') || 'Jumla'}: <span className="text-pink-300 font-mono font-black">{totalCount.toLocaleString()}</span> {t?.('txItems') || 'miamala'}
           </div>
         </div>
       </div>

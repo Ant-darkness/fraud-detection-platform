@@ -1,7 +1,359 @@
+#x-airflow-common: &airflow-common
+#  build:
+#    context: .
+#    dockerfile: Dockerfiles/Dockerfile.airflow
+#  environment:
+#    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+#    HOST_PROJECT_PATH: ${HOST_PROJECT_PATH}
+#    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_POSTGRES_USER}:${AIRFLOW_POSTGRES_PASSWORD}@airflow-postgres:5432/${AIRFLOW_POSTGRES_DB}
+#    AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+#    AIRFLOW__LOGGING__LOGGING_LEVEL: INFO
+
+#    # Usalama na Auth (Muhimu kwa Airflow 3)
+#    AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: "${AIRFLOW_ADMIN_USER}:${AIRFLOW_ADMIN_PASSWORD}"
+#    AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "True"
+
+#    # SULUHISHO LA AIRFLOW 3: Lazima funguo ya JWT ifanane kote
+#    AIRFLOW__API_AUTH__JWT_SECRET: "${AIRFLOW_JWT_SECRET}"
+
+#    # PATH SAHIHI YA EXECUTION API KATIKA MATOLEO MAPYA
+#    AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://airflow-api-server:8080/execution
+
+#    PYTHONPATH: /opt/airflow
+#    DB_HOST: ${DB_HOST}
+#    DB_PORT: ${DB_PORT}
+#    DB_NAME: ${FRAUD_POSTGRES_DB}
+#    DB_USER: ${FRAUD_POSTGRES_USER}
+#    DB_PASSWORD: ${FRAUD_POSTGRES_PASSWORD}
+
+#  volumes:
+#    - ./airflow_pipeline/dags:/opt/airflow/dags
+#    - ./airflow_pipeline/logs:/opt/airflow/logs
+#    - ./airflow_pipeline/plugins:/opt/airflow/plugins
+#    - ./:/opt/airflow
+#    - /var/run/docker.sock:/var/run/docker.sock
+#  networks:
+#    - fraud-network
+
+#services:
+#  # =========================
+#  # AIRFLOW DATABASE
+#  # =========================
+#  airflow-postgres:
+#    image: postgres:15
+#    container_name: airflow-postgres
+#    environment:
+#      POSTGRES_USER: ${AIRFLOW_POSTGRES_USER}
+#      POSTGRES_PASSWORD: ${AIRFLOW_POSTGRES_PASSWORD}
+#      POSTGRES_DB: ${AIRFLOW_POSTGRES_DB}
+#    ports:
+#      - "5432:5432"
+#    volumes:
+#      - postgres_data:/var/lib/postgresql/data
+#    networks:
+#      - fraud-network
+
+#  # =========================
+#  # FRAUD DATABASE
+#  # =========================
+#  fraud-postgres:
+#    image: postgres:15
+#    container_name: fraud-postgres
+#    environment:
+#      POSTGRES_USER: ${FRAUD_POSTGRES_USER}
+#      POSTGRES_PASSWORD: ${FRAUD_POSTGRES_PASSWORD}
+#      POSTGRES_DB: ${FRAUD_POSTGRES_DB}
+#    ports:
+#      - "5433:5432"
+#    volumes:
+#      - fraud_postgres_data:/var/lib/postgresql/data
+#    networks:
+#      - fraud-network
+
+#  # =========================
+#  # AIRFLOW INIT
+#  # =========================
+#  airflow-init:
+#    <<: *airflow-common
+#    container_name: airflow-init
+#    depends_on:
+#      - airflow-postgres
+#    command: >
+#      bash -c "airflow db migrate && airflow users create --username ${AIRFLOW_ADMIN_USER} --password ${AIRFLOW_ADMIN_PASSWORD} --firstname Abely --lastname User --role Admin --email ${AIRFLOW_ADMIN_EMAIL}"
+
+#  # =========================
+#  # AIRFLOW API SERVER (UI + API)
+#  # =========================
+#  airflow-api-server:
+#    <<: *airflow-common
+#    container_name: airflow-api-server
+#    depends_on:
+#      - airflow-postgres
+#    command: airflow api-server
+#    ports:
+#      - "8080:8080"
+#    restart: unless-stopped
+
+#  # =========================
+#  # AIRFLOW SCHEDULER
+#  # =========================
+#  airflow-scheduler:
+#    <<: *airflow-common
+#    container_name: airflow-scheduler
+#    depends_on:
+#      - airflow-postgres
+#      - airflow-api-server
+#    command: airflow scheduler
+#    restart: unless-stopped
+
+#  # =========================
+#  # AIRFLOW DAG PROCESSOR
+#  # =========================
+#  airflow-dag-processor:
+#    <<: *airflow-common
+#    container_name: airflow-dag-processor
+#    depends_on:
+#      - airflow-postgres
+#    command: airflow dag-processor
+#    restart: unless-stopped
+
+#  # =========================
+#  # AIRFLOW TRIGGERER
+#  # =========================
+#  airflow-triggerer:
+#    <<: *airflow-common
+#    container_name: airflow-triggerer
+#    depends_on:
+#      - airflow-postgres
+#    command: airflow triggerer
+#    restart: unless-stopped
+
+#  # =========================
+#  # KAFKA (KRaft mode)
+#  # =========================
+#  kafka:
+#    image: apache/kafka:3.7.0
+#    container_name: kafka
+#    restart: unless-stopped
+#    ports:
+#      - "9092:9092"
+#      - "9093:9093"
+#    environment:
+#      KAFKA_NODE_ID: 1
+#      KAFKA_PROCESS_ROLES: broker,controller
+#      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+#      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+
+#      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,INTERNAL://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093
+#      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,INTERNAL://kafka:29092
+#      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+
+#      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+#      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+#      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+#      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+#      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+#    volumes:
+#      - kafka_data:/var/lib/kafka/data
+#    networks:
+#      - fraud-network
+
+#  # =========================
+#  # CDC - DEBEZIUM CONNECT SERVICE
+#  # =========================
+#  debezium:
+#    image: debezium/connect:2.7.3.Final
+#    container_name: debezium
+#    restart: unless-stopped
+#    ports:
+#      - "8083:8083"
+#    extra_hosts:
+#      - "host.docker.internal:host-gateway"
+#    environment:
+#      BOOTSTRAP_SERVERS: kafka:29092
+#      GROUP_ID: "debezium-cluster"
+#      CONFIG_STORAGE_TOPIC: connect_configs
+#      OFFSET_STORAGE_TOPIC: connect_offsets
+#      STATUS_STORAGE_TOPIC: connect_statuses
+#      KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+#      VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+
+#      # Standard Connect Configurations
+#      CONFIG_STORAGE_REPLICATION_FACTOR: "1"
+#      OFFSET_STORAGE_REPLICATION_FACTOR: "1"
+#      STATUS_STORAGE_REPLICATION_FACTOR: "1"
+
+#      # Debezium Specific Connect Configurations
+#      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: "1"
+#      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: "1"
+#      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: "1"
+#      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+#      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+#      CONNECT_REST_ADVERTISED_HOST_NAME: debezium
+#      CONNECT_REST_PORT: "8083"
+
+#      # RUHUSU POSTGRES TU ILI KUONGEZA KASI YA KUWAKA (Fast Booting)
+#      CONNECT_PLUGIN_PATH: /kafka/connect
+
+#    healthcheck:
+#      test: ["CMD-SHELL", "curl -s -f http://localhost:8083/connectors || exit 1"]
+#      interval: 15s
+#      timeout: 10s
+#      retries: 30
+#      start_period: 300s 
+#    depends_on:
+#      - kafka
+#    networks:
+#      - fraud-network
+
+
+#  # =========================
+#  # CDC AUTOMATED INITIALIZER
+#  # =========================
+#  #debezium-init:
+#  #  build:
+#  #    context: .
+#  #    dockerfile: Dockerfiles/Dockerfile.debeziuminit
+#  #  container_name: debezium-init
+#  #  depends_on:
+#  #    debezium:
+#  #      condition: service_started
+#  #    kafka:
+#  #      condition: service_started
+#  #  command: python scripts/setup_cdc.py
+#  #  restart: "no"
+#  #  networks:
+#  #    - fraud-network
+
+#  # =========================
+#  # REALTIME CDC CONSUMER SERVICE
+#  # =========================
+#  realtime-consumer:
+#    build:
+#      context: .
+#      dockerfile: Dockerfiles/Dockerfile.consumer
+#    container_name: realtime-consumer
+#    restart: unless-stopped
+#    env_file:
+#      - .env
+#    environment:
+#      PYTHONPATH: /app
+#    depends_on:
+#      kafka:
+#        condition: service_started
+#      fraud-postgres:
+#        condition: service_started
+#      fraud-api:
+#        condition: service_started
+#      #debezium-init:
+#      #  condition: service_completed_successfully 
+#    networks:
+#      - fraud-network
+ 
+#  # =========================
+#  # FASTAPI SERVICE
+#  # =========================
+#  fraud-api:
+#    build:
+#      context: .
+#      dockerfile: Dockerfiles/Dockerfile.api
+#    container_name: fraud-api
+#    env_file:
+#      - .env
+#    depends_on:
+#      - fraud-postgres
+#    environment:
+#      DB_HOST: ${DB_HOST}
+#      DB_PORT: ${DB_PORT}
+#      DB_NAME: ${FRAUD_POSTGRES_DB}
+#      DB_USER: ${FRAUD_POSTGRES_USER}
+#      DB_PASSWORD: ${FRAUD_POSTGRES_PASSWORD}
+#      AGENT_SERVICE_URL: ${AGENT_SERVICE_URL}
+#    ports:
+#      - "8000:8000"
+#    volumes:
+#      - ./:/app
+#    networks:
+#      - fraud-network
+
+#  # =========================
+#  # FRONTEND SERVICE
+#  # =========================
+#  frontend-ui:
+#    container_name: frontend-ui
+#    build:
+#      context: ./frontend
+#      dockerfile: Dockerfile
+#      args:
+#        - VITE_API_BASE_URL=http://localhost:8000
+#    ports:
+#      - "3000:80"
+#    restart: always
+#    networks:
+#      - fraud-network
+
+#  # =========================
+#  # AGENTIC AI MICROSERVICE
+#  # =========================
+#  agentic-service:
+#    build:
+#      context: .
+#      dockerfile: agentic_service/Dockerfile
+#    container_name: agentic-service
+#    depends_on:
+#      - fraud-postgres
+#    environment:
+#      DB_HOST: ${DB_HOST}
+#      DB_PORT: ${DB_PORT}
+#      DB_NAME: ${FRAUD_POSTGRES_DB}
+#      DB_USER: ${FRAUD_POSTGRES_USER}
+#      DB_PASSWORD: ${FRAUD_POSTGRES_PASSWORD}
+#      DATABASE_URL: ${DATABASE_URL}
+#      GEMINI_API_KEY: ${GEMINI_API_KEY}
+#      GEMINI_MODEL_NAME: ${GEMINI_MODEL_NAME}
+#    ports:
+#      - "8001:8001"
+#    networks:
+#      - fraud-network
+#    restart: unless-stopped
+
+#  # =========================
+#  # ML TRAINING SERVICE
+#  # =========================
+#  ml-training:
+#    build:
+#      context: .
+#      dockerfile: Dockerfiles/Dockerfile.training
+#    container_name: ml-training
+#    volumes:
+#      - .:/app
+#    environment:
+#      DB_HOST: ${DB_HOST}
+#      DB_PORT: ${DB_PORT}
+#      DB_NAME: ${FRAUD_POSTGRES_DB}
+#      DB_USER: ${FRAUD_POSTGRES_USER}
+#      DB_PASSWORD: ${FRAUD_POSTGRES_PASSWORD}
+#      DATABASE_URL: ${DATABASE_URL}
+#      AGENT_SERVICE_URL: ${AGENT_SERVICE_URL}
+#    restart: "no"
+#    networks:
+#      - fraud-network
+
+#networks:
+#  fraud-network:
+#    name: fraud-network
+#    driver: bridge
+
+#volumes:
+#  postgres_data:
+#  fraud_postgres_data:
+#  kafka_data:
+
+
 x-airflow-common: &airflow-common
   build:
     context: .
-    dockerfile: Dockerfile.airflow
+    dockerfile: Dockerfiles/Dockerfile.airflow
   environment:
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
     HOST_PROJECT_PATH: ${HOST_PROJECT_PATH}
@@ -9,14 +361,10 @@ x-airflow-common: &airflow-common
     AIRFLOW__CORE__LOAD_EXAMPLES: "False"
     AIRFLOW__LOGGING__LOGGING_LEVEL: INFO
 
-    # Usalama na Auth (Muhimu kwa Airflow 3)
+    # Usalama na Auth (Airflow 3)
     AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: "${AIRFLOW_ADMIN_USER}:${AIRFLOW_ADMIN_PASSWORD}"
     AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "True"
-
-    # 🔥 SULUHISHO LA AIRFLOW 3: Lazima funguo ya JWT ifanane kote
     AIRFLOW__API_AUTH__JWT_SECRET: "${AIRFLOW_JWT_SECRET}"
-
-    # 🔥 PATH SAHIHI YA EXECUTION API KATIKA MATOLEO MAPYA
     AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://airflow-api-server:8080/execution
 
     PYTHONPATH: /opt/airflow
@@ -54,7 +402,7 @@ services:
       - fraud-network
 
   # =========================
-  # FRAUD DATABASE 
+  # FRAUD DATABASE
   # =========================
   fraud-postgres:
     image: postgres:15
@@ -107,7 +455,7 @@ services:
     restart: unless-stopped
 
   # =========================
-  # AIRFLOW DAG PROCESSOR 
+  # AIRFLOW DAG PROCESSOR
   # =========================
   airflow-dag-processor:
     <<: *airflow-common
@@ -129,11 +477,12 @@ services:
     restart: unless-stopped
 
   # =========================
-  # KAFKA
+  # KAFKA (KRaft mode)
   # =========================
   kafka:
-    image: apache/kafka:latest
+    image: apache/kafka:3.7.0
     container_name: kafka
+    restart: unless-stopped
     ports:
       - "9092:9092"
       - "9093:9093"
@@ -142,45 +491,77 @@ services:
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-
-      # 1. Ongeza INTERNAL listener (port 29092) kwa ajili ya Docker Containers
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,INTERNAL://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093
-      
-      # 2. Tangaza localhost (kwa ajili ya Terminal yako) na kafka:29092 (kwa ajili ya backend container)
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,INTERNAL://kafka:29092
-      
-      # 3. Map Protocols
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
-      
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
     volumes:
       - kafka_data:/var/lib/kafka/data
     networks:
       - fraud-network
 
-
   # =========================
-  # CDC- DEBEZIUM SERVICE
+  # CDC - DEBEZIUM CONNECT SERVICE
   # =========================
-  connect:
+  debezium:
     image: debezium/connect:2.7.3.Final
     container_name: debezium
+    restart: unless-stopped
     ports:
       - "8083:8083"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
-      BOOTSTRAP_SERVERS: kafka:9092
-      GROUP_ID: "1"
+      BOOTSTRAP_SERVERS: kafka:29092
+      GROUP_ID: "debezium-cluster"
       CONFIG_STORAGE_TOPIC: connect_configs
       OFFSET_STORAGE_TOPIC: connect_offsets
       STATUS_STORAGE_TOPIC: connect_statuses
       KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
-      CONFIG_STORAGE_REPLICATION_FACTOR: 1
-      OFFSET_STORAGE_REPLICATION_FACTOR: 1
-      STATUS_STORAGE_REPLICATION_FACTOR: 1
+      CONFIG_STORAGE_REPLICATION_FACTOR: "1"
+      OFFSET_STORAGE_REPLICATION_FACTOR: "1"
+      STATUS_STORAGE_REPLICATION_FACTOR: "1"
+      CONNECT_REST_ADVERTISED_HOST_NAME: debezium
+      CONNECT_REST_PORT: "8083"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -f http://localhost:8083/connectors || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 30
+      start_period: 60s
     depends_on:
       - kafka
+    networks:
+      - fraud-network
+
+  # =========================
+  # REALTIME CDC CONSUMER SERVICE
+  # =========================
+  realtime-consumer:
+    build:
+      context: .
+      dockerfile: Dockerfiles/Dockerfile.consumer
+    container_name: realtime-consumer
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PYTHONPATH: /app
+
+    volumes:
+      - ./:/app
+    depends_on:
+      kafka:
+        condition: service_started
+      fraud-postgres:
+        condition: service_started
+      fraud-api:
+        condition: service_started
     networks:
       - fraud-network
 
@@ -190,8 +571,10 @@ services:
   fraud-api:
     build:
       context: .
-      dockerfile: Dockerfile.api
+      dockerfile: Dockerfiles/Dockerfile.api
     container_name: fraud-api
+    env_file:
+      - .env
     depends_on:
       - fraud-postgres
     environment:
@@ -255,7 +638,7 @@ services:
   ml-training:
     build:
       context: .
-      dockerfile: Dockerfile.training
+      dockerfile: Dockerfiles/Dockerfile.training
     container_name: ml-training
     volumes:
       - .:/app
@@ -280,3 +663,4 @@ volumes:
   postgres_data:
   fraud_postgres_data:
   kafka_data:
+

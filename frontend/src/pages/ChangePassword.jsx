@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { api } from '../services/api';
+import { FcPrivacy } from 'react-icons/fc';
 
 const ChangePassword = ({ showToast }) => {
   const [formData, setFormData] = useState({
@@ -48,33 +49,31 @@ const ChangePassword = ({ showToast }) => {
         new_password: formData.newPassword
       });
 
-      notify("Nenosiri lako limebadilishwa kikamilifu!", "success");
+      notify("Nenosiri yako imebadilishwa kikamilifu!", "success");
       setFormData({ oldPassword: '', newPassword: '', confirmNewPassword: '' });
     } catch (error) {
-      notify(error.message || "Imeshindikana kubadili nenosiri. Tafadhali thibitisha nenosiri la sasa.", "error");
+      notify(error.message || "Imeshindikana kubadili nenosiri.", "error");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-md mx-auto my-8 font-sans px-4 select-none">
-      <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
-        <div className="absolute -top-10 -right-10 w-32 h-32 bg-cyan-500/20 rounded-full blur-2xl pointer-events-none"></div>
-
-        <div className="text-center mb-6 relative z-10">
-          <span className="text-3xl block mb-2" role="img" aria-label="Lock">🔐</span>
-          <h2 className="text-base font-black text-white uppercase tracking-wider">
-            Badili Nenosiri
+    <div className="max-w-md mx-auto my-12 font-sans px-4 select-none">
+      <div className="neo-card p-8 relative overflow-hidden">
+        <div className="text-center mb-6">
+          <FcPrivacy className="text-5xl mx-auto mb-2" />
+          <h2 className="text-base font-black text-slate-800 uppercase tracking-wider">
+            Badilisha Nenosiri
           </h2>
-          <p className="text-xs text-cyan-100/80 mt-1 font-medium">
-            Hakikisha nenosiri lako jipya ni imara na lina usalama wa kutosha.
+          <p className="text-xs text-slate-500 mt-1 font-bold">
+            Weka nenosiri thabiti kulinda akaunti yako.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1">
-            <label className="text-[11px] font-black text-cyan-200 block uppercase tracking-wider">
+            <label className="text-[11px] font-black text-slate-700 block uppercase tracking-wider">
               Nenosiri la Sasa
             </label>
             <input
@@ -83,13 +82,13 @@ const ChangePassword = ({ showToast }) => {
               value={formData.oldPassword}
               onChange={handleChange}
               placeholder="••••••••"
-              className="w-full bg-slate-950/50 border border-white/20 rounded-xl px-4 py-2.5 text-white placeholder-white/30 text-xs focus:border-cyan-400 outline-none transition"
+              className="w-full neo-inset rounded-2xl px-4 py-3 text-slate-800 text-xs outline-none"
               required
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-[11px] font-black text-cyan-200 block uppercase tracking-wider">
+            <label className="text-[11px] font-black text-slate-700 block uppercase tracking-wider">
               Nenosiri Jipya
             </label>
             <input
@@ -98,13 +97,13 @@ const ChangePassword = ({ showToast }) => {
               value={formData.newPassword}
               onChange={handleChange}
               placeholder="••••••••"
-              className="w-full bg-slate-950/50 border border-white/20 rounded-xl px-4 py-2.5 text-white placeholder-white/30 text-xs focus:border-cyan-400 outline-none transition"
+              className="w-full neo-inset rounded-2xl px-4 py-3 text-slate-800 text-xs outline-none"
               required
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-[11px] font-black text-cyan-200 block uppercase tracking-wider">
+            <label className="text-[11px] font-black text-slate-700 block uppercase tracking-wider">
               Thibitisha Nenosiri Jipya
             </label>
             <input
@@ -113,7 +112,7 @@ const ChangePassword = ({ showToast }) => {
               value={formData.confirmNewPassword}
               onChange={handleChange}
               placeholder="••••••••"
-              className="w-full bg-slate-950/50 border border-white/20 rounded-xl px-4 py-2.5 text-white placeholder-white/30 text-xs focus:border-cyan-400 outline-none transition"
+              className="w-full neo-inset rounded-2xl px-4 py-3 text-slate-800 text-xs outline-none"
               required
             />
           </div>
@@ -121,13 +120,13 @@ const ChangePassword = ({ showToast }) => {
           <button
             type="submit"
             disabled={loading}
-            className={`w-full py-3 rounded-xl text-xs font-black uppercase tracking-wider text-white bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 transition cursor-pointer shadow-lg flex items-center justify-center gap-2 mt-2 ${
+            className={`w-full py-3.5 rounded-2xl neo-button text-indigo-600 font-black text-xs uppercase tracking-wider transition cursor-pointer flex items-center justify-center gap-2 mt-4 ${
               loading ? 'opacity-50 cursor-wait' : ''
             }`}
           >
             {loading ? (
               <>
-                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                <span className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></span>
                 Inahifadhi...
               </>
             ) : (

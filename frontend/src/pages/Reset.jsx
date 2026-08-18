@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { api } from '../services/api';
 
 const Reset = ({ setView, showToast }) => {
@@ -7,15 +7,21 @@ const Reset = ({ setView, showToast }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const notify = useCallback((msg, type = 'info') => {
+    if (typeof showToast === 'function') {
+      showToast(msg, type);
+    }
+  }, [showToast]);
+
   const handlePasswordConfirm = async (e) => {
     e.preventDefault();
     if (!token.trim()) {
-      showToast("Tafadhali weka Token ya usalama uliyoipokea kwenye Email!", "error");
+      notify("Tafadhali weka Token ya usalama uliyoipokea kwenye Email!", "error");
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      showToast("Nenosiri jipya na lile la kuhakikisha hayafanani!", "error");
+      notify("Nenosiri jipya na lile la kuhakikisha hayafanani!", "error");
       return;
     }
 
@@ -23,28 +29,39 @@ const Reset = ({ setView, showToast }) => {
 
     try {
       const response = await api.auth.resetPasswordConfirm(token.trim(), newPassword);
-      showToast(response.message || "Nenosiri lako jipya limesajiliwa kikamilifu!", "success");
+      notify(response.message || "Nenosiri lako jipya limesajiliwa kikamilifu!", "success");
       if (typeof setView === 'function') setView('login');
     } catch (err) {
-      showToast(err.message || "Imeshindikana kubadilisha nenosiri.", "error");
+      notify(err.message || "Imeshindikana kubadilisha nenosiri.", "error");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-md mx-auto my-8 font-sans px-4 select-none">
-      <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden space-y-5">
-        <form onSubmit={handlePasswordConfirm} className="space-y-4">
-          <p className="text-xs text-amber-400 text-center mb-2 font-bold">
+    <div className="max-w-md mx-auto my-12 font-sans px-4 select-none">
+      {/* Container Kuu yenye Neumorphic / Corporate Theme */}
+      <div className="neo-card p-6 sm:p-8 relative overflow-hidden space-y-6 shadow-2xl rounded-3xl border border-slate-300">
+        
+        {/* Header Section */}
+        <div className="text-center space-y-2 border-b border-slate-300/80 pb-4">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300 shadow-sm">
             🛡️ USALAMA WA KIWANGO CHA JUU
+          </span>
+          <h3 className="text-lg font-black text-slate-900 uppercase tracking-wide">
+            WEKA NENOSIRI JIPYA
+          </h3>
+          <p className="text-xs text-slate-600 font-bold">
+            Ingiza Token uliyoipokea kwenye barua pepe yako pamoja na nenosiri jipya.
           </p>
-          <p className="text-xs text-cyan-100/80 text-center mb-4">
-            Ingiza Token uliyoipokea kwenye barua pepe pamoja na nenosiri jipya.
-          </p>
+        </div>
 
+        {/* Form Section */}
+        <form onSubmit={handlePasswordConfirm} className="space-y-4">
+          
+          {/* Token Input */}
           <div>
-            <label className="text-[11px] font-black text-cyan-200 uppercase tracking-wider block mb-1">
+            <label className="text-[11px] font-black text-slate-800 uppercase tracking-wider block mb-1.5">
               Token Ya Usalama (OTP)
             </label>
             <input 
@@ -54,12 +71,13 @@ const Reset = ({ setView, showToast }) => {
               disabled={loading}
               value={token}
               onChange={(e) => setToken(e.target.value)}
-              className="w-full p-3 rounded-xl bg-black/50 border border-white/20 text-white tracking-widest font-mono text-center placeholder-gray-500 focus:border-cyan-400 outline-none text-sm transition-all"
+              className="w-full p-3.5 rounded-2xl neo-inset text-slate-900 font-mono text-center tracking-widest font-black placeholder-slate-400 outline-none text-sm transition-all focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
             />
           </div>
 
+          {/* New Password Input */}
           <div>
-            <label className="text-[11px] font-black text-cyan-200 uppercase tracking-wider block mb-1">
+            <label className="text-[11px] font-black text-slate-800 uppercase tracking-wider block mb-1.5">
               Nenosiri Jipya
             </label>
             <input 
@@ -69,12 +87,13 @@ const Reset = ({ setView, showToast }) => {
               disabled={loading}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full p-3 rounded-xl bg-black/50 border border-white/20 text-white placeholder-gray-500 focus:border-cyan-400 outline-none text-sm transition-all"
+              className="w-full p-3.5 rounded-2xl neo-inset text-slate-900 font-bold placeholder-slate-400 outline-none text-sm transition-all focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
             />
           </div>
 
+          {/* Confirm Password Input */}
           <div>
-            <label className="text-[11px] font-black text-cyan-200 uppercase tracking-wider block mb-1">
+            <label className="text-[11px] font-black text-slate-800 uppercase tracking-wider block mb-1.5">
               Thibitisha Nenosiri Jipya
             </label>
             <input 
@@ -84,14 +103,15 @@ const Reset = ({ setView, showToast }) => {
               disabled={loading}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full p-3 rounded-xl bg-black/50 border border-white/20 text-white placeholder-gray-500 focus:border-cyan-400 outline-none text-sm transition-all"
+              className="w-full p-3.5 rounded-2xl neo-inset text-slate-900 font-bold placeholder-slate-400 outline-none text-sm transition-all focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
             />
           </div>
 
+          {/* Action Button */}
           <button 
             type="submit" 
             disabled={loading}
-            className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition duration-200 cursor-pointer shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-widest rounded-2xl transition duration-200 cursor-pointer shadow-lg flex items-center justify-center gap-2 border border-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed mt-2"
           >
             {loading ? (
               <>
@@ -99,21 +119,23 @@ const Reset = ({ setView, showToast }) => {
                 Inasajili...
               </>
             ) : (
-              "Hifadhi Nenosiri Jipya"
+              "💾 Hifadhi Nenosiri Jipya"
             )}
           </button>
 
+          {/* Cancel/Back Button */}
           <div className="text-center pt-2">
             <button 
               type="button" 
-              onClick={() => setView && setView('login')}
+              onClick={() => typeof setView === 'function' && setView('login')}
               disabled={loading}
-              className="text-xs text-gray-400 hover:text-white cursor-pointer transition"
+              className="text-xs font-black text-slate-600 hover:text-slate-900 cursor-pointer transition disabled:opacity-50 underline decoration-slate-400 underline-offset-4"
             >
               ← Ghairi na Rudi Login
             </button>
           </div>
         </form>
+
       </div>
     </div>
   );

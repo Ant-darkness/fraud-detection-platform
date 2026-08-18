@@ -1,5 +1,6 @@
 import joblib
 import os
+from pathlib import Path
 import pandas as pd
 import numpy as np
 from backend.app.services.model_service import get_active_model
@@ -25,7 +26,8 @@ class FraudPredictor:
             model_path = active["model_path"]
             name = active["model_name"]
             version = active["model_version"] 
-            path = model_path  
+            #path = str(Path(__file__).resolve().parents[2] / model_path.lstrip("/\\"))
+            path = os.path.abspath(os.path.join(os.path.dirname(__file__),"../..", model_path))
             if os.path.exists(path):
                 self.model = joblib.load(path)
                 self.model_path = path

@@ -2,19 +2,17 @@ import React, { createContext, useContext, useState } from 'react';
 
 const translations = {
   SW: {
-    // Navigation & Main Titles
     fraudSummary: "Muhtasari wa Utapeli",
     fraudReviews: "Uhakiki wa Utapeli",
-    models: "Mifumo ya Uchambuzi (Models)",
-    transactions: "Miamala Halisi",
+    models: "Mifumo ya Uchambuzi",
+    transactions: "Miamala Halisi Live",
     volumeAnalysis: "Uchambuzi wa Thamani",
     businessAnalytics: "Uchambuzi wa Kina (BI)",
     officers: "Usimamizi wa Maafisa",
-    airflow: "Nenda Airflow Pipeline",
+    airflow: "Apache Airflow Pipeline",
     logout: "Ondoka Mfumoni",
     loggedAs: "Umeingia kama",
 
-    // Common Actions & Labels
     confirmAction: "Thibitisha Kitendo",
     cancel: "Ghairi",
     confirm: "Thibitisha",
@@ -32,76 +30,66 @@ const translations = {
     all: "Zote",
     trend: "Mwenendo wa Utapeli",
 
-    // Authentication & Reset Password
-    loginTitle: "Mfumo wa Usimamizi wa Utapeli - BOT",
+    loginTitle: "Benki Kuu ya Tanzania - Mfumo wa Udhibiti wa Utapeli",
     password: "Nenosiri",
-    oldPassword: "Nenosiri la Zamani",
+    oldPassword: "Nenosiri la Sasa",
     newPassword: "Nenosiri Jipya",
     confirmNewPassword: "Thibitisha Nenosiri Jipya",
     changePassword: "Badilisha Nenosiri",
     forgotPassword: "Umesahau Nenosiri?",
     resetPassword: "Weka Upya Nenosiri",
-    resetPasswordSub: "Ingiza nenosiri lako jipya salama hapa chini ili kukamilisha mchakato.",
+    resetPasswordSub: "Ingiza nenosiri lako jipya salama hapa chini.",
     username: "Barua Pepe / Mtumiaji",
     fullName: "Jina Kamili",
-    role: "Wajibu / Fursa (Role)",
+    role: "Wajibu Wa Afisa",
     registerOfficer: "Sajili Afisa Mpya",
     officerList: "Orodha ya Maafisa wa Mfumo",
 
-    // Models & Metrics (Embedded)
-    registryTitle: "Usimamizi wa Models & Metrics",
-    registrySub: "Tazama utendaji, vipimo vya usahihi (accuracy/f1-score), na badilisha model inayofanya kazi.",
+    registryTitle: "Usimamizi wa Mifumo ya Uchambuzi",
+    registrySub: "Tazama utendaji na usahihi wa mifumo ya utambuzi wa miamala.",
     viewModelMetrics: "Tazama Metrics",
-    btnReloadRAM: "🔄 Reload Models kwenye RAM",
+    btnReloadRAM: "🔄 Reload kwenye RAM",
     thVersion: "Toleo",
     thDescription: "Maelezo ya Utendaji",
     thDataset: "Ukubwa wa Data",
     noDescription: "Haina maelezo ya ziada.",
-    registryEmpty: "Hakuna models zilizosajiliwa hivi sasa.",
+    registryEmpty: "Hakuna mifumo iliyosajiliwa hivi sasa.",
     f1ScoreText: "F1-Score",
     precisionText: "Precision",
     recallText: "Recall",
     accuracyText: "Accuracy",
     bestBadge: "Inayofanya Kazi",
 
-    // Live Transactions
     txTitle: "Mtiririko wa Live Data (Transactions)",
     txSub: "Ufuatiliaji wa papo hapo wa miamala inayoingia kutoka kwenye mifumo ya makazi.",
     txTotal: "Jumla",
     txItems: "Miamala",
     txTimeOrStep: "Muda / Sekunde",
     txType: "Aina ya Muamala",
-    txAmount: "Kiasi (TZS/USD)",
-    txOldOrig: "Salio la Awali (Akaunti ya Kutuma)",
-    txNewOrig: "Salio Jipya (Akaunti ya Kutuma)",
-    txOldDest: "Salio la Awali (Akaunti ya Kupokea)",
-    txNewDest: "Salio Jipya (Akaunti ya Kupokea)",
+    txAmount: "Kiasi (TZS)",
+    txOldOrig: "Salio la Awali (Kutuma)",
+    txNewOrig: "Salio Jipya (Kutuma)",
+    txOldDest: "Salio la Awali (Kupokea)",
+    txNewDest: "Salio Jipya (Kupokea)",
     txEmpty: "Hakuna miamala inayotiririka hivi sasa.",
     pagePrev: "◀ Nyuma",
     pageNext: "Mbele ▶",
 
-    // Dialogs
-    dialogActiveTitle: "Thibitisha Kuwasha Model",
-    dialogDeactiveTitle: "Thibitisha Kuzima Model",
-    dialogDeleteTitle: "Thibitisha Kufuta Model",
-    dialogActiveMsg: "Una uhakika unataka kuwasha model hii? Model ya sasa itawekwa pembeni na hii inza kuanza kufanya kazi mara moja.",
-    dialogDeactiveMsg: "Una uhakika unataka kuizima model hii?",
-    dialogDeleteMsg: "Hatua hii itafuta kabisa faili la model na taarifa zake zote. Kitendo hiki hakirudishwi nyuma!"
+    btnMinimize: "Punguza Window",
+    btnMaximize: "Enua Window"
   },
   ENG: {
-    // Navigation & Main Titles
     fraudSummary: "Fraud Summary",
     fraudReviews: "Fraud Reviews",
-    models: "Models & Metrics",
-    transactions: "Live Transactions",
+    models: "Analytical Models",
+    transactions: "Live Streaming",
     volumeAnalysis: "Volume & Value",
     businessAnalytics: "Business Intelligence",
     officers: "Officers Directory",
-    airflow: "Go to Airflow Pipeline",
+    airflow: "Apache Airflow Pipeline",
     logout: "Sign Out",
     loggedAs: "Logged in as",
 
-    // Common Actions & Labels
     confirmAction: "Confirm Action",
     cancel: "Cancel",
     confirm: "Confirm",
@@ -111,7 +99,7 @@ const translations = {
     actions: "Actions",
     totalTransactions: "Total Volume",
     predictedFraud: "Flagged Suspicious",
-    pendingReviews: "Pending Compliance Review",
+    pendingReviews: "Pending Review",
     confirmedFraud: "Confirmed Fraud",
     fraudRate: "Fraud Risk Index (%)",
     search: "Search...",
@@ -119,8 +107,7 @@ const translations = {
     all: "All",
     trend: "Fraud Activity Trend",
 
-    // Authentication & Reset Password
-    loginTitle: "Bank of Tanzania - Fraud Radar Portal",
+    loginTitle: "Bank of Tanzania - Fraud Oversight Portal",
     password: "Password",
     oldPassword: "Old Password",
     newPassword: "New Password",
@@ -128,52 +115,45 @@ const translations = {
     changePassword: "Change Password",
     forgotPassword: "Forgot Password?",
     resetPassword: "Reset Password",
-    resetPasswordSub: "Enter your new secure password below to regain system entry.",
+    resetPasswordSub: "Enter your secure credentials below.",
     username: "Email / Username",
     fullName: "Full Name",
-    role: "User Role & Privileges",
-    registerOfficer: "Register New Compliance Officer",
-    officerList: "System Officers Directory",
+    role: "User Privileges",
+    registerOfficer: "Register Compliance Officer",
+    officerList: "Officers Directory",
 
-    // Models & Metrics (Embedded)
-    registryTitle: "Models & Metrics Management",
-    registrySub: "Monitor performance benchmarks, evaluation metrics, and active state triggers.",
-    viewModelMetrics: "View Metrics & Charts",
-    btnReloadRAM: "🔄 Reload Models in RAM",
+    registryTitle: "Model Operations Management",
+    registrySub: "Monitor detection metrics and performance triggers.",
+    viewModelMetrics: "View Metrics",
+    btnReloadRAM: "🔄 Reload RAM Models",
     thVersion: "Version",
-    thDescription: "Operational Notes",
-    thDataset: "Training Dataset Size",
+    thDescription: "Notes",
+    thDataset: "Dataset Size",
     noDescription: "No additional notes provided.",
-    registryEmpty: "No analytical models found in the system registry.",
+    registryEmpty: "No analytical models registered.",
     f1ScoreText: "F1-Score",
     precisionText: "Precision",
     recallText: "Recall",
     accuracyText: "Accuracy",
     bestBadge: "Active Production",
 
-    // Live Transactions
     txTitle: "Live Data Streaming Monitor",
     txSub: "Real-time stream monitoring across core settlement endpoints.",
     txTotal: "Total Streaming",
     txItems: "Transactions",
     txTimeOrStep: "Timestamp / Sequence",
     txType: "Transaction Type",
-    txAmount: "Amount",
+    txAmount: "Amount (TZS)",
     txOldOrig: "Origin Initial Balance",
     txNewOrig: "Origin Updated Balance",
     txOldDest: "Destination Initial Balance",
     txNewDest: "Destination Updated Balance",
-    txEmpty: "No live stream activity currently detected.",
+    txEmpty: "No live stream activity detected.",
     pagePrev: "◀ Previous",
     pageNext: "Next ▶",
 
-    // Dialogs
-    dialogActiveTitle: "Confirm Model Activation",
-    dialogDeactiveTitle: "Confirm Model Deactivation",
-    dialogDeleteTitle: "Confirm Permanent Deletion",
-    dialogActiveMsg: "Are you sure you want to activate this model for live evaluation?",
-    dialogDeactiveMsg: "Are you sure you want to deactivate this model?",
-    dialogDeleteMsg: "Critical Warning! This will permanently remove the binary file and metadata."
+    btnMinimize: "Minimize Window",
+    btnMaximize: "Maximize Window"
   }
 };
 
@@ -186,17 +166,14 @@ export const LanguageProvider = ({ children }) => {
   });
 
   const toggleLanguage = () => {
-    setLanguage((prevLang) => {
-      const nextLang = prevLang === 'SW' ? 'ENG' : 'SW';
+    setLanguage((prev) => {
+      const nextLang = prev === 'SW' ? 'ENG' : 'SW';
       localStorage.setItem('bot_lang', nextLang);
       return nextLang;
     });
   };
 
-  const t = (key) => {
-    const currentLang = (language === 'SW' || language === 'ENG') ? language : 'SW';
-    return translations[currentLang]?.[key] ?? key;
-  };
+  const t = (key) => translations[language]?.[key] ?? key;
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, toggleLanguage, t }}>
@@ -207,8 +184,6 @@ export const LanguageProvider = ({ children }) => {
 
 export const useLanguage = () => {
   const context = useContext(LanguageContext);
-  if (!context) {
-    throw new Error("useLanguage must be used within LanguageProvider!");
-  }
+  if (!context) throw new Error("useLanguage must be used within LanguageProvider!");
   return context;
 };

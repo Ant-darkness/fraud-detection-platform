@@ -89,3 +89,9 @@ def confirm_agent_action(request: ConfirmActionRequest):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Hitilafu wakati wa kuthibitisha action: {str(e)}"
         )
+
+
+
+
+#AGENT_SERVICE_URL = os.getenv(
+#    "AGENT_SERVICE_URL", "http://agentic-service:8001")

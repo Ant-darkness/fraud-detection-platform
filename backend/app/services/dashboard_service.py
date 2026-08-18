@@ -40,7 +40,7 @@ def dashboard_summary():
             SELECT 
                 COUNT(t.transaction_id) as total_transactions,
                 COUNT(CASE WHEN f.final_label = TRUE THEN 1 END) as predicted_frauds,
-                COUNT(CASE WHEN f.status = 'PENDING' AND f.final_label = TRUE THEN 1 END) as pending_reviews,
+                COUNT(CASE WHEN f.status = 'PENDING' THEN 1 END) as pending_reviews,
                 COUNT(CASE WHEN f.status = 'ISFRAUD' THEN 1 END) as confirmed_frauds
             FROM transactions t
             LEFT JOIN fraud_review_queue f
@@ -76,7 +76,6 @@ def dashboard_summary():
     finally:
         if conn:
             conn.close()
-
 
 # -------------------------------------------------------------------
 # 2. FRAUD VS NON-FRAUD TREND (Dashboard Bar Chart)
@@ -180,7 +179,6 @@ def get_dashboard_analytics(
         if conn:
             conn.close()
 
-
 # -------------------------------------------------------------------
 # 3. VOLUME COMPARISON
 # -------------------------------------------------------------------
@@ -278,7 +276,6 @@ def get_volume_comparison_data(
     finally:
         if conn:
             conn.close()
-
 
 # -------------------------------------------------------------------
 # 4. PLOTLY WEBSOCKET LIVE ENGINE

@@ -526,3 +526,29 @@ volumes:
   postgres_data:
   fraud_postgres_data:
   kafka_data:
+
+
+
+ # =========================
+  # KAFKA-UI  (mpya - kusimamia Kafka na Debezium kwa UI)
+  # =========================
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    restart: unless-stopped
+    depends_on:
+      - kafka
+      - connect
+    ports:
+      - "8090:8080"   # localhost:8090 -> UI (8080 tayari inatumiwa na airflow-api-server)
+    environment:
+      KAFKA_CLUSTERS_0_NAME: fraud-radar-cluster
+      # Tunatumia INTERNAL listener kwa sababu kafka-ui inaendesha ndani ya fraud-network
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+
+      # Hii inaunganisha UI moja kwa moja na Kafka Connect (Debezium) REST API
+      # ili uweze kuunda/kufuta/kuangalia connectors kwenye UI badala ya curl
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: debezium-connect
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: http://connect:8083
+    networks:
+      - fraud-network

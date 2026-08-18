@@ -13,21 +13,20 @@ import Transactions from './pages/Transactions';
 import Login from './pages/Login';
 import ChangePassword from './pages/ChangePassword';
 import Reset from './pages/Reset';
+import { FcCheckmark, FcHighPriority } from 'react-icons/fc';
 
 const App = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedModelForMetrics, setSelectedModelForMetrics] = useState(null);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   
-  // Toast Alert Notification State
+  // Toast Notification State
   const [toast, setToast] = useState(null);
 
   // ULINZI DHIDI YA INSPECT ELEMENT NA DOM EDITING
   useEffect(() => {
-    // 1. Kuzuia Right Click
     const handleContextMenu = (e) => e.preventDefault();
-    
-    // 2. Kuzuia Shortcuts za Developer Tools (F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U)
     const handleKeyDown = (e) => {
       if (
         e.keyCode === 123 || 
@@ -38,28 +37,12 @@ const App = () => {
       }
     };
 
-    // 3. MutationObserver kuzuia mabadiliko ya Text kupitia Inspect Element
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'characterData' || mutation.type === 'childList') {
-          // Client-side text modification rollback logic
-        }
-      });
-    });
-
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-      characterData: true
-    });
-
     document.addEventListener('contextmenu', handleContextMenu);
     document.addEventListener('keydown', handleKeyDown);
 
     return () => {
       document.removeEventListener('contextmenu', handleContextMenu);
       document.removeEventListener('keydown', handleKeyDown);
-      observer.disconnect();
     };
   }, []);
 
@@ -85,22 +68,25 @@ const App = () => {
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'SYSTEM_ADMIN';
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex relative font-sans antialiased selection:bg-pink-400 selection:text-slate-950 select-none">
-      {/* Background Glow Effects */}
-      <div className="fixed inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 -z-10" />
-      <div className="fixed top-[-10%] left-[-10%] w-[500px] h-[500px] bg-[#F2C4CE]/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="fixed bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-indigo-500/10 rounded-full blur-[150px] pointer-events-none" />
-
+    <div className="min-h-screen bg-[#e6ebf0] text-slate-800 flex relative font-sans antialiased select-none overflow-hidden">
+      
       {/* Sidebar Navigation */}
-      <Sidebar activeTab={activeTab === 'metrics' ? 'models' : activeTab} setActiveTab={setActiveTab} />
+      <Sidebar 
+        activeTab={activeTab === 'metrics' ? 'models' : activeTab} 
+        setActiveTab={setActiveTab} 
+        isCollapsed={isCollapsed}
+        setIsCollapsed={setIsCollapsed}
+      />
 
-      {/* Main Layout Container */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden pl-64">
+      {/* Main Layout Workspace Container */}
+      <div className={`flex-1 flex flex-col min-w-0 h-screen overflow-hidden transition-all duration-300 ${
+        isCollapsed ? 'pl-20' : 'pl-64'
+      }`}>
         {/* Topbar Header */}
-        <Topbar activeTab={activeTab === 'metrics' ? 'models' : activeTab} setActiveTab={setActiveTab} />
+        <Topbar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
 
         {/* Dynamic Workspace Screens */}
-        <main className="pt-20 pb-8 px-6 flex-1 overflow-y-auto scrollbar-thin">
+        <main className="pt-24 pb-8 px-6 flex-1 overflow-y-auto scrollbar-thin">
           <div className="max-w-[1600px] mx-auto w-full">
             {activeTab === 'dashboard' && <Dashboard showToast={showToast} />}
             {activeTab === 'reviews' && <FraudReviews showToast={showToast} />}
@@ -134,15 +120,17 @@ const App = () => {
         </main>
       </div>
 
-      {/* Glass Notification Toast UI */}
+      {/* Soft Neomorphic Toast Notification */}
       {toast && (
-        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl border backdrop-blur-xl shadow-2xl transition-all duration-300 ${
+        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-6 py-4 rounded-2xl neo-card border transition-all duration-300 ${
           toast.type === 'success' 
-            ? 'bg-emerald-950/90 border-emerald-500/40 text-emerald-200 shadow-emerald-950/50' 
-            : 'bg-rose-950/90 border-rose-500/40 text-rose-200 shadow-rose-950/50'
+            ? 'border-emerald-300/80 text-emerald-900' 
+            : 'border-rose-300/80 text-rose-900'
         }`}>
-          <span className="text-base">{toast.type === 'success' ? '✅' : '⚠️'}</span>
-          <span className="text-xs font-bold">{toast.message}</span>
+          <span className="text-xl">
+            {toast.type === 'success' ? <FcCheckmark /> : <FcHighPriority />}
+          </span>
+          <span className="text-xs font-black tracking-wide">{toast.message}</span>
         </div>
       )}
     </div>

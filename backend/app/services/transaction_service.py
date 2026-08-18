@@ -58,7 +58,7 @@ def get_transactions(page: int = 1, limit: int = 15):
         offset = (page - 1) * limit
 
         cursor.execute("""
-            SELECT step, type, amount, oldbalanceorg, newbalanceorig, 
+            SELECT step, type, amount, nameorig, oldbalanceorg, newbalanceorig, namedest,
                    oldbalancedest, newbalancedest, created_at
             FROM transactions 
             ORDER BY created_at DESC 

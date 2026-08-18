@@ -133,7 +133,7 @@ export const api = {
     }
   },
 
-  // --- DASHBOARD (FRAUD SUMMARY) & ANALYTICS ---
+  // --- DASHBOARD & REALTIME AI AGENTS ---
   dashboard: {
     getSummary: async () => {
       const response = await fetch(`${BASE_URL}/dashboard/summary`, { headers: getHeaders() });
@@ -175,51 +175,46 @@ export const api = {
         changeTimeframe: (newTimeframe) => wsClient.send({ timeframe: newTimeframe }),
         close: () => wsClient.close()
       };
-      },
-    
-      // -------------------------------------------------------------
-      // AGENT 2 INTEGRATION: Autonomous Trend & Liquidity Analysis (Zamani - HUIJAGUSA/HUIJAHARIBU)
-      // -------------------------------------------------------------
-      getTrendAnalysisAgent: async (params = {}) => {
-        const { timeframe, custom_start, custom_end } = params;
-  
-        const urlParams = new URLSearchParams();
-        if (timeframe) urlParams.append('timeframe', timeframe);
-        if (custom_start) urlParams.append('custom_start', custom_start);
-        if (custom_end) urlParams.append('custom_end', custom_end);
-  
-        const queryString = urlParams.toString();
-        const finalUrl = `${BASE_URL}/api/v1/agents/trends${queryString ? `?${queryString}` : ''}`;
-  
-        const response = await fetch(finalUrl, { headers: getHeaders() });
-        return handleResponse(response);
-      },
-  
-      // -------------------------------------------------------------
-      // AI AGENTS PROMPT PORTALS (Mpya kwa ajili ya Dynamic Prompts)
-      // -------------------------------------------------------------
-      askFraudAgent: async (payload) => {
-        const response = await fetch(`${BASE_URL}/api/v1/agents/ask-fraud`, {
-          method: 'POST',
-          headers: {
-            ...getHeaders(),
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(payload)
-        });
-        return handleResponse(response);
-      },
-  
-  
+    },
+
+    // -------------------------------------------------------------
+    // REAL-TIME ANALYTICS AGENTS (VOLUME & FRAUD AGENTS)
+    // -------------------------------------------------------------
+    getVolumeAnalyticsAgent: async (timeframe = '7DAYS', language = 'sw') => {
+      const response = await fetch(
+        `${BASE_URL}/api/v1/agents/volume-analytics?timeframe=${timeframe}&language=${language}`, 
+        { headers: getHeaders() }
+      );
+      return handleResponse(response);
+    },
+
+    getFraudAnalyticsAgent: async (timeframe = '7DAYS', language = 'sw') => {
+      const response = await fetch(
+        `${BASE_URL}/api/v1/agents/fraud-analytics?timeframe=${timeframe}&language=${language}`, 
+        { headers: getHeaders() }
+      );
+      return handleResponse(response);
+    }
   },
 
-  // --- FORENSIC AGENTS ---
-  businessAnalytics: {
-    askAgent: async (prompt) => {
+  // -------------------------------------------------------------
+  // SCOPED FORENSIC SEARCH ASSISTANT (SCOPED QUERY AGENT)
+  // -------------------------------------------------------------
+  agents: {
+    askScopedAgent: async (prompt, context = "business") => {
       const response = await fetch(`${BASE_URL}/api/v1/agents/query`, {
         method: 'POST',
         headers: getHeaders(),
-        body: JSON.stringify({ prompt })
+        body: JSON.stringify({ prompt, context })
+      });
+      return handleResponse(response);
+    },
+
+    triggerModelAudit: async (modelId, metrics) => {
+      const response = await fetch(`${BASE_URL}/api/v1/agents/model-audit`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ model_id: modelId, metrics })
       });
       return handleResponse(response);
     }
@@ -251,7 +246,6 @@ export const api = {
       const response = await fetch(`${BASE_URL}/models/${modelId}`, { method: 'DELETE', headers: getHeaders() });
       return handleResponse(response);
     },
-    // Embedded Metrics endpoint ndani ya Models module
     getMetrics: async (modelId) => {
       const response = await fetch(`${BASE_URL}/metrics/${modelId}`, { headers: getHeaders() });
       return handleResponse(response);
@@ -284,40 +278,37 @@ export const api = {
       const response = await fetch(`${BASE_URL}/transactions/${transactionId}`, { headers: getHeaders() });
       return handleResponse(response);
     }
-    },
-  
-  
-    // --- OFFICERS (ADMIN ONLY) ---
-    officers: {
-      list: async () => {
-        const response = await fetch(`${BASE_URL}/officers/`, { headers: getHeaders() });
-        return handleResponse(response);
-      },
-      register: async (fullName, username, email, password, role = 'OFFICER') => {
-        const queryParams = new URLSearchParams({ full_name: fullName, username, email, password, role });
-        const response = await fetch(`${BASE_URL}/officers/register?${queryParams}`, {
-          method: 'POST',
-          headers: getHeaders(),
-        });
-        return handleResponse(response);
-      },
-      enable: async (officerId) => {
-        if (!officerId) throw new Error("Hitilafu: ID ya afisa haipo!");
-        const response = await fetch(`${BASE_URL}/officers/${officerId}/enable`, { 
-          method: 'PUT', 
-          headers: getHeaders() 
-        });
-        return handleResponse(response);
-      },
-      disable: async (officerId) => {
-        if (!officerId) throw new Error("Hitilafu: ID ya afisa haipo!");
-        const response = await fetch(`${BASE_URL}/officers/${officerId}/disable`, { 
-          method: 'PUT', 
-          headers: getHeaders() 
-        });
-        return handleResponse(response);
-      }
-    },
-  
-};
+  },
 
+  // --- OFFICERS (ADMIN ONLY) ---
+  officers: {
+    list: async () => {
+      const response = await fetch(`${BASE_URL}/officers/`, { headers: getHeaders() });
+      return handleResponse(response);
+    },
+    register: async (fullName, username, email, password, role = 'OFFICER') => {
+      const queryParams = new URLSearchParams({ full_name: fullName, username, email, password, role });
+      const response = await fetch(`${BASE_URL}/officers/register?${queryParams}`, {
+        method: 'POST',
+        headers: getHeaders(),
+      });
+      return handleResponse(response);
+    },
+    enable: async (officerId) => {
+      if (!officerId) throw new Error("Hitilafu: ID ya afisa haipo!");
+      const response = await fetch(`${BASE_URL}/officers/${officerId}/enable`, { 
+        method: 'PUT', 
+        headers: getHeaders() 
+      });
+      return handleResponse(response);
+    },
+    disable: async (officerId) => {
+      if (!officerId) throw new Error("Hitilafu: ID ya afisa haipo!");
+      const response = await fetch(`${BASE_URL}/officers/${officerId}/disable`, { 
+        method: 'PUT', 
+        headers: getHeaders() 
+      });
+      return handleResponse(response);
+    }
+  },
+};

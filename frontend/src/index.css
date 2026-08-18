@@ -1,18 +1,14 @@
 @import "tailwindcss";
 
-/* --- LIQUID GLASS & BLUSH THEME CONFIGURATION --- */
+/* --- BOT NEOMORPHISM DESIGN ENGINE --- */
 @theme {
-    /* Glassmorphism Defaults */
-    --color-glass-bg: rgba(15, 23, 42, 0.65);
-    --color-glass-border: rgba(255, 255, 255, 0.12);
-    --color-glass-hover: rgba(255, 255, 255, 0.18);
-    --color-glass-card: rgba(30, 41, 59, 0.45);
-
-    /* Blush Palette Theme */
-    --color-blush-main: #F2C4CE;
-    --color-blush-border: rgba(242, 196, 206, 0.8);
-    --color-blush-hover: rgba(242, 196, 206, 0.2);
-    --color-blush-subtle: rgba(242, 196, 206, 0.1);
+    --color-neo-bg: #e6ebf0;
+    --color-neo-card: #e6ebf0;
+    --color-neo-shadow-dark: #b8c1ec;
+    --color-neo-shadow-light: #ffffff;
+    --color-neo-accent: #6366f1;
+    --color-neo-text-main: #1e293b;
+    --color-neo-text-sub: #64748b;
 }
 
 @layer base {
@@ -21,40 +17,63 @@
     }
 
     body {
-        background-color: #030712;
-        color: #f8fafc;
+        background-color: #e6ebf0;
+        color: #1e293b;
         font-family: 'Inter', system-ui, -apple-system, sans-serif;
         overflow: hidden;
         min-height: 100vh;
     }
 }
 
-/* Glassmorphism Utilities (Imeachwa kama ilivyokuwa kwa ajili ya Sidebar & Topbar) */
-@utility glass-card {
-    background: rgba(15, 23, 42, 0.55) !important;
-    backdrop-filter: blur(16px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37) !important;
+/* --- NEOMORPHIC UI UTILITIES --- */
+
+/* Flat Neomorphic Surface */
+.neo-card {
+    background: #e6ebf0;
+    box-shadow: 12px 12px 24px #c2c9d6, -12px -12px 24px #ffffff;
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.6);
 }
 
-@utility glass-card-inner {
-    background: rgba(255, 255, 255, 0.05) !important;
-    backdrop-filter: blur(8px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+/* Extruded Dynamic Surface (For Interactive Cards) */
+.neo-card-hover {
+    background: #e6ebf0;
+    box-shadow: 10px 10px 20px #c2c9d6, -10px -10px 20px #ffffff;
+    border-radius: 20px;
+    transition: all 0.3s ease-in-out;
 }
 
-/* Blush Utility khusus kwa ajili ya Content Area pekee (Transactions, Charts, Analytics) */
-@utility blush-card {
-    background: #F2C4CE !important;
-    color: #0f172a !important;
-    border: 1px solid rgba(242, 196, 206, 0.8) !important;
-    box-shadow: 0 10px 30px -10px rgba(242, 196, 206, 0.3) !important;
+.neo-card-hover:hover {
+    box-shadow: 15px 15px 30px #b8bfcc, -15px -15px 30px #ffffff;
+    transform: translateY(-2px);
 }
 
-@utility blush-card-inner {
-    background: rgba(15, 23, 42, 0.05) !important;
-    border: 1px solid rgba(242, 196, 206, 0.6) !important;
+/* Inset Soft Depths (For Inputs & Recessed Containers) */
+.neo-inset {
+    background: #e6ebf0;
+    box-shadow: inset 6px 6px 12px #c2c9d6, inset -6px -6px 12px #ffffff;
+    border-radius: 16px;
+}
+
+/* Pressed Soft Buttons */
+.neo-button {
+    background: #e6ebf0;
+    box-shadow: 6px 6px 12px #c2c9d6, -6px -6px 12px #ffffff;
+    border-radius: 16px;
+    transition: all 0.2s ease;
+    color: #1e293b;
+    font-weight: 700;
+}
+
+.neo-button:hover {
+    box-shadow: 3px 3px 6px #c2c9d6, -3px -3px 6px #ffffff;
+    color: #4f46e5;
+}
+
+.neo-button:active,
+.neo-button-active {
+    box-shadow: inset 4px 4px 8px #c2c9d6, inset -4px -4px 8px #ffffff;
+    color: #4f46e5;
 }
 
 /* Custom Scrollbar */
@@ -64,14 +83,15 @@
 }
 
 ::-webkit-scrollbar-track {
-    background: rgba(3, 7, 18, 0.5);
+    background: #e6ebf0;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
+    background: #cbd5e1;
     border-radius: 99px;
+    box-shadow: inset 2px 2px 4px #b8c1ec;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #F2C4CE;
+    background: #94a3b8;
 }

@@ -13,11 +13,12 @@ const Forgot = ({ setView, showToast }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email.trim()) return;
+    const cleanEmail = email.trim();
+    if (!cleanEmail) return;
 
     setLoading(true);
     try {
-      const res = await api.auth.forgotPassword(email.trim());
+      await api.auth.forgotPassword(cleanEmail);
       notify("Token ya usalama imetumwa kwenye barua pepe yako!", "success");
       if (typeof setView === 'function') setView('reset');
     } catch (err) {
@@ -31,7 +32,7 @@ const Forgot = ({ setView, showToast }) => {
     <div className="max-w-md mx-auto my-8 font-sans px-4 select-none">
       <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden space-y-5">
         <div className="text-center space-y-2">
-          <span className="text-3xl block">🔑</span>
+          <span className="text-3xl block" role="img" aria-label="key">🔑</span>
           <h2 className="text-base font-black text-white uppercase tracking-wider">
             Rejesha Nenosiri
           </h2>
@@ -48,10 +49,12 @@ const Forgot = ({ setView, showToast }) => {
             <input
               type="email"
               required
+              disabled={loading}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="afisa@bot.go.tz"
-              className="w-full bg-slate-950/50 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 text-xs focus:border-cyan-400 outline-none transition"
+              autoComplete="email"
+              className="w-full bg-slate-950/50 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 text-xs focus:border-cyan-400 outline-none transition disabled:opacity-50"
             />
           </div>
 
@@ -74,8 +77,9 @@ const Forgot = ({ setView, showToast }) => {
 
           <button
             type="button"
-            onClick={() => setView && setView('login')}
-            className="w-full text-center text-xs text-cyan-300 hover:text-cyan-200 font-bold block pt-2 cursor-pointer transition"
+            disabled={loading}
+            onClick={() => typeof setView === 'function' && setView('login')}
+            className="w-full text-center text-xs text-cyan-300 hover:text-cyan-200 font-bold block pt-2 cursor-pointer transition disabled:opacity-50"
           >
             ← Rudi Kwenye Kuingia (Login)
           </button>

@@ -1,5 +1,6 @@
 import logging
 import json
+import asyncio
 from typing import List, Dict, Any
 from fastapi import WebSocket
 
@@ -14,26 +15,29 @@ class ConnectionManager:
         await websocket.accept()
         self.active_connections.append(websocket)
         logger.info(
-            f"🟢 Client MPYA imeunganishwa! Jumla ya Clients: {len(self.active_connections)}")
+            f"🟢 Client MPYA imeunganishwa! Jumla ya Clients: {len(self.active_connections)}"
+        )
 
     def disconnect(self, websocket: WebSocket):
         if websocket in self.active_connections:
             self.active_connections.remove(websocket)
             logger.info(
-                f"🔴 Client imejitoa/imekimbia. Waliobaki: {len(self.active_connections)}")
+                f"🔴 Client imejitoa/imekimbia. Waliobaki: {len(self.active_connections)}"
+            )
 
     async def broadcast(self, message: Dict[str, Any]):
         """
-        Inasambaza data kwa wateja wote walio-connect kwa wakati mmoja kwa ufanisi wa hali ya juu.
+        Inasambaza data kwa wateja wote walio-connect kwa wakati mmoja (Parallel)
+        kwa kutumia asyncio.gather ili kutoa kasi ya hali ya juu (Ultra-Low Latency).
         Inasafisha kiotomatiki (Auto-Cleanup) connection zilizokufa.
         """
         if not self.active_connections:
             return
 
-        dead_connections = []
         payload_str = json.dumps(message, default=str)
+        dead_connections = []
 
-        for connection in list(self.active_connections):
+        async def send_to_client(connection: WebSocket):
             try:
                 await connection.send_text(payload_str)
             except Exception as e:
@@ -41,10 +45,13 @@ class ConnectionManager:
                     f"⚠️ Imeshindikana kutuma payload kwa client: {str(e)}")
                 dead_connections.append(connection)
 
-        # Safisha vilivyokufa bila kuzuia vingine
+        # Kurusha data kwa ma-client wote MTOA MMOJA KWA PAMOJA (Parallel Broadcast)
+        await asyncio.gather(*(send_to_client(conn) for conn in list(self.active_connections)))
+
+        # Safisha connection zote zilizokufa mara moja
         for dead in dead_connections:
             self.disconnect(dead)
 
 
-# Global Manager Instance
+# Global Singleton Manager Instance
 ws_manager = ConnectionManager()

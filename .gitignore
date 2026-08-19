@@ -13,7 +13,7 @@
 /logs
 /dags
 /ml/models
-/airflow_pipelene/logs
+/airflow_pipeline/logs
 /airflow_pipeline/logs/dag_processor/2026-07-31/dags-folder/build_feedback_dataset_dag.py.log
 /airflow_pipeline/logs/dag_processor/2026-07-31/dags-folder/fraud_retraining_dag.py.log
 /debezium-local-postgres.json

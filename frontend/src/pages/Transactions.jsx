@@ -19,45 +19,46 @@ const Transactions = ({ showToast }) => {
   const MAX_LIVE_BUFFER = 1000;
 
   const notify = useCallback((msg, type = 'info') => {
-    if (typeof showToast === 'function') {
-      showToast(msg, type);
-    }
+    if (typeof showToast === 'function') showToast(msg, type);
   }, [showToast]);
 
-  // 1. Initial Load kutoka Database
+  // Initial Fetch on Mount
   useEffect(() => {
+    let isMounted = true;
     const fetchTransactions = async () => {
       setLoading(true);
       try {
         const response = await api.transactions.getAll({ page: currentPage, limit });
-        if (response && response.data) {
-          setTransactions(response.data);
-          setTotalCount(response.total || 0);
-        } else {
-          const list = Array.isArray(response) ? response : [];
-          setTransactions(list);
-          setTotalCount(list.length);
+        if (isMounted) {
+          if (response && response.data) {
+            setTransactions(response.data);
+            setTotalCount(response.total || 0);
+          } else {
+            const list = Array.isArray(response) ? response : [];
+            setTransactions(list);
+            setTotalCount(list.length);
+          }
         }
       } catch (error) {
-        notify("Imeshindikana kupakia orodha ya miamala ya kweli.", "error");
+        if (isMounted) notify("Imeshindikana kupakia orodha ya miamala.", "error");
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
     fetchTransactions();
+    return () => { isMounted = false; };
   }, [currentPage, limit, notify]);
 
-  // 2. LIVE WEBSOCKET ENGINE
+  // LIVE STREAMING INGESTION (NO REQUEST SENT)
   useEffect(() => {
     if (!lastMessage || lastMessage.event_type !== 'NEW_TRANSACTION') return;
-
     const { transaction } = lastMessage;
     if (!transaction) return;
 
     setTransactions((prevTx) => {
       if (prevTx.length >= MAX_LIVE_BUFFER) {
-        notify("⚡ Live feed status: Miamala imefika 1,000. Buffer imesafishwa!", "info");
+        notify("⚡ Live Buffer full. Resetting local buffer...", "info");
         return [transaction];
       }
       return [transaction, ...prevTx];
@@ -76,20 +77,18 @@ const Transactions = ({ showToast }) => {
         return tx.created_at;
       }
     }
-    if (tx.step !== undefined && tx.step !== null) {
-      return `${t?.('txStepLabel') || 'Step'} ${tx.step}`;
-    }
+    if (tx.step !== undefined && tx.step !== null) return `Step ${tx.step}`;
     return "N/A";
   };
 
   return (
     <div className={`transition-all duration-300 font-sans select-none bg-[#F2C4CE] text-slate-900 border border-pink-300/80 shadow-2xl ${
       isMaximized 
-        ? 'fixed inset-2 md:inset-4 z-50 rounded-3xl p-4 sm:p-6 md:p-8 flex flex-col justify-between overflow-hidden' 
-        : 'rounded-3xl p-4 sm:p-6 relative overflow-hidden'
+        ? 'fixed inset-2 md:inset-4 z-50 rounded-3xl p-6 flex flex-col justify-between overflow-hidden' 
+        : 'rounded-3xl p-6 relative overflow-hidden'
     }`}>
       
-      {/* HEADER SECTION */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 shrink-0">
         <div className="flex items-center gap-3 flex-wrap">
           <h3 className="text-sm sm:text-base font-black text-slate-950 uppercase tracking-wider flex items-center gap-2">
@@ -98,23 +97,23 @@ const Transactions = ({ showToast }) => {
           <button
             type="button"
             onClick={() => setIsMaximized(!isMaximized)}
-            className="px-3 py-1.5 bg-slate-950 hover:bg-slate-900 text-pink-200 border border-slate-800 rounded-xl text-xs font-extrabold tracking-wider uppercase transition-all flex items-center gap-1 cursor-pointer shadow-md"
+            className="px-3 py-1.5 bg-slate-950 text-pink-200 border border-slate-800 rounded-xl text-xs font-extrabold uppercase shadow-md cursor-pointer"
           >
-            {isMaximized ? `🗗 ${t?.('btnMinimize') || 'Minimize'}` : `🗖 ${t?.('btnMaximize') || 'Maximize'}`}
+            {isMaximized ? '🗗 Minimize' : '🗖 Maximize'}
           </button>
         </div>
         
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-          <div className="text-xs font-bold text-slate-100 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 shadow-sm font-mono">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="text-xs font-bold text-slate-100 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 font-mono">
             Live Buffer: <span className="text-pink-300 font-black">{transactions.length}/{MAX_LIVE_BUFFER}</span>
           </div>
-          <div className="text-xs font-bold text-slate-100 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 shadow-sm">
-            {t?.('txTotal') || 'Jumla'}: <span className="text-pink-300 font-mono font-black">{totalCount.toLocaleString()}</span> {t?.('txItems') || 'miamala'}
+          <div className="text-xs font-bold text-slate-100 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
+            Jumla: <span className="text-pink-300 font-mono font-black">{totalCount.toLocaleString()}</span> miamala
           </div>
         </div>
       </div>
 
-      {/* CONTENT & TABLE SECTION */}
+      {/* Table Content */}
       {loading && transactions.length === 0 ? (
         <div className="grow flex items-center justify-center min-h-[40vh]">
           <span className="w-10 h-10 border-4 border-slate-950 border-t-transparent rounded-full animate-spin"></span>
@@ -122,9 +121,9 @@ const Transactions = ({ showToast }) => {
       ) : (
         <>
           <div className="overflow-x-auto grow bg-slate-950/5 rounded-2xl border border-pink-300/80 scrollbar-thin">
-            <table className="w-full text-left border-collapse min-w-[950px] sm:min-w-[1100px]">
+            <table className="w-full text-left border-collapse min-w-[950px]">
               <thead>
-                <tr className="bg-pink-300/40 border-b border-pink-300/80 text-xs text-pink-950 uppercase tracking-wider font-black">
+                <tr className="bg-pink-300/40 border-b border-pink-300/80 text-xs text-pink-950 uppercase font-black">
                   <th className="py-3.5 px-4">Muda / Step</th>
                   <th className="py-3.5 px-4">Aina (Type)</th>
                   <th className="py-3.5 px-4">Kiasi (Amount)</th>
@@ -137,11 +136,9 @@ const Transactions = ({ showToast }) => {
               <tbody className="text-xs sm:text-sm text-slate-950 divide-y divide-pink-300/50 font-mono">
                 {transactions.map((tx, index) => (
                   <tr key={tx.transaction_id || tx.id || index} className="hover:bg-pink-300/20 transition-colors">
-                    <td className="py-3 px-4 text-pink-950 font-bold whitespace-nowrap">
-                      {formatTimeOrStep(tx)}
-                    </td>
+                    <td className="py-3 px-4 text-pink-950 font-bold whitespace-nowrap">{formatTimeOrStep(tx)}</td>
                     <td className="py-3 px-4">
-                      <span className="bg-slate-950 text-pink-300 border border-slate-800 px-2 py-0.5 rounded text-[10px] font-black uppercase shadow-sm">
+                      <span className="bg-slate-950 text-pink-300 border border-slate-800 px-2 py-0.5 rounded text-[10px] font-black uppercase">
                         {tx.type || "TRANSFER"}
                       </span>
                     </td>
@@ -173,29 +170,22 @@ const Transactions = ({ showToast }) => {
             </table>
           </div>
 
-          {/* PAGINATION */}
           {totalPages > 1 && (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-6 pt-4 border-t border-pink-300/80 shrink-0">
+            <div className="flex justify-between items-center text-xs font-bold text-pink-950 pt-4 shrink-0">
               <button
-                type="button"
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                className="w-full sm:w-auto px-4 py-2 bg-slate-950 hover:bg-slate-900 border border-slate-800 rounded-xl text-xs font-black uppercase tracking-wider text-pink-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-md"
+                disabled={currentPage <= 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                className="px-3 py-1.5 rounded-xl bg-slate-950 text-pink-200 disabled:opacity-40 cursor-pointer"
               >
-                ◀ Ukurasa Uliopita
+                ◀️ Inayotangulia
               </button>
-              
-              <span className="text-xs text-pink-950 font-bold">
-                Ukurasa <span className="text-slate-950 font-black">{currentPage}</span> kati ya <span className="text-slate-950 font-black">{totalPages}</span>
-              </span>
-
+              <span>Ukurasa <strong className="text-slate-950">{currentPage}</strong> kati ya <strong>{totalPages}</strong></span>
               <button
-                type="button"
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                className="w-full sm:w-auto px-4 py-2 bg-slate-950 hover:bg-slate-900 border border-slate-800 rounded-xl text-xs font-black uppercase tracking-wider text-pink-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-md"
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage((p) => p + 1)}
+                className="px-3 py-1.5 rounded-xl bg-slate-950 text-pink-200 disabled:opacity-40 cursor-pointer"
               >
-                Ukurasa Unaofuata ▶
+                Inayofuata ▶️
               </button>
             </div>
           )}

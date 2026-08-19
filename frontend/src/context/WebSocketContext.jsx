@@ -1,64 +1,63 @@
-import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
-import { api } from '../services/api';
+import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 
-const defaultContextValue = {
-  lastMessage: null,
-  isConnected: false,
-};
-
-const WebSocketContext = createContext(defaultContextValue);
+const WebSocketContext = createContext(null);
 
 export const WebSocketProvider = ({ children }) => {
   const [lastMessage, setLastMessage] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const socketRef = useRef(null);
-  const reconnectTimeoutRef = useRef(null);
+  const reconnectTimerRef = useRef(null);
 
-  useEffect(() => {
-    let isMounted = true;
+  const connectWebSocket = useCallback(() => {
+    const WS_BASE_URL = import.meta.env.VITE_WS_BASE_URL || "ws://localhost:8000/ws/live-feed";
 
-    const connectWS = () => {
-      try {
+    try {
+      socketRef.current = new WebSocket(WS_BASE_URL);
+
+      socketRef.current.onopen = () => {
+        setIsConnected(true);
+        if (reconnectTimerRef.current) {
+          clearTimeout(reconnectTimerRef.current);
+          reconnectTimerRef.current = null;
+        }
+      };
+
+      socketRef.current.onmessage = (event) => {
+        try {
+          const parsedData = JSON.parse(event.data);
+          setLastMessage(parsedData);
+        } catch (err) {
+          // Kupuuza majibu yasiyo JSON sahihi
+        }
+      };
+
+      socketRef.current.onclose = () => {
+        setIsConnected(false);
+        reconnectTimerRef.current = setTimeout(() => {
+          connectWebSocket();
+        }, 3000);
+      };
+
+      socketRef.current.onerror = () => {
         if (socketRef.current) {
           socketRef.current.close();
         }
+      };
+    } catch (e) {
+      reconnectTimerRef.current = setTimeout(() => {
+        connectWebSocket();
+      }, 3000);
+    }
+  }, []);
 
-        socketRef.current = api.ws.connect(
-          (data) => {
-            if (!isMounted) return;
-            setIsConnected(true);
-            setLastMessage(data);
-          },
-          (error) => {
-            if (!isMounted) return;
-            console.error('WebSocket connection error:', error);
-            setIsConnected(false);
-            scheduleReconnect();
-          }
-        );
-      } catch (err) {
-        if (!isMounted) return;
-        console.error('Failed to establish WebSocket connection:', err);
-        setIsConnected(false);
-        scheduleReconnect();
-      }
-    };
-
-    const scheduleReconnect = () => {
-      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = setTimeout(() => {
-        if (isMounted) connectWS();
-      }, 5000);
-    };
-
-    connectWS();
+  useEffect(() => {
+    connectWebSocket();
 
     return () => {
-      isMounted = false;
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
       if (socketRef.current) socketRef.current.close();
-      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
     };
-  }, []);
+  }, [connectWebSocket]);
 
   return (
     <WebSocketContext.Provider value={{ lastMessage, isConnected }}>
@@ -68,6 +67,5 @@ export const WebSocketProvider = ({ children }) => {
 };
 
 export const useWebSocket = () => {
-  const context = useContext(WebSocketContext);
-  return context || defaultContextValue;
+  return useContext(WebSocketContext);
 };

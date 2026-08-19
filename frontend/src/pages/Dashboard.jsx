@@ -1,10 +1,35 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { api } from '../services/api';
 import { useWebSocket } from '../context/WebSocketContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { FcBinoculars, FcComboChart, FcCheckmark, FcList, FcMediumPriority, FcTimeline } from 'react-icons/fc';
-import { HiOutlineSearch } from 'react-icons/hi';
+import { HiOutlineSearch, HiChevronLeft, HiChevronRight, HiX, HiArrowsExpand } from 'react-icons/hi';
+
+// Helper ya kusawazisha label za X-Axis kulingana na Timeframe
+const formatXAxisLabel = (label, timeframe) => {
+  if (!label) return '';
+  const strLabel = String(label);
+
+  switch (timeframe) {
+    case '24hrs':
+      // Mfano: 00:00, 04:00, 08:00...
+      return strLabel.includes(':') ? strLabel : `${strLabel}:00`;
+    case '7days':
+      // Mfano: Mon, Tue... au 1, 2...
+      const days = ['Jumatatu', 'Jumanne', 'Jumatano', 'Alhamisi', 'Ijumaa', 'Jumamosi', 'Jumapili'];
+      const dayIdx = parseInt(strLabel, 10);
+      return !isNaN(dayIdx) && days[dayIdx - 1] ? days[dayIdx - 1] : strLabel;
+    case '4weeks':
+      return strLabel.toLowerCase().includes('wk') ? strLabel : `Wiki ${strLabel}`;
+    case '1year':
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ago', 'Sep', 'Okt', 'Nov', 'Des'];
+      const monthIdx = parseInt(strLabel, 10);
+      return !isNaN(monthIdx) && months[monthIdx - 1] ? months[monthIdx - 1] : strLabel;
+    default:
+      return strLabel;
+  }
+};
 
 const Dashboard = ({ showToast }) => {
   const { t } = useLanguage();
@@ -32,13 +57,16 @@ const Dashboard = ({ showToast }) => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(10);
+  const [pageSize] = useState(8);
+
+  // Ref ya kuzuia React re-renders zilizopitiliza wakati wa High-frequency stream
+  const updateBuffer = useRef({ summary: null, newTx: null });
 
   const notify = useCallback((msg, type = 'info') => {
     if (typeof showToast === 'function') showToast(msg, type);
   }, [showToast]);
 
-  // Load initial data ONCE on mount / timeframe change
+  // load initial data on mount / timeframe change
   useEffect(() => {
     let isMounted = true;
     const loadInitialData = async () => {
@@ -58,8 +86,14 @@ const Dashboard = ({ showToast }) => {
             fraud_rate: summary.fraud_rate ?? 0
           });
         }
+
         if (isMounted && analytics?.trend) {
-          setTrendData(analytics.trend);
+          // Format X-Axis trends
+          const formattedTrend = analytics.trend.map(item => ({
+            ...item,
+            time_label: formatXAxisLabel(item.time_label || item.label || item.time, timeframe)
+          }));
+          setTrendData(formattedTrend);
         }
       } catch (err) {
         if (isMounted) notify("Imeshindikana kupakia takwimu za mwanzo.", "error");
@@ -72,7 +106,7 @@ const Dashboard = ({ showToast }) => {
     return () => { isMounted = false; };
   }, [timeframe, notify]);
 
-  // LIVE STREAMING VIA WEBSOCKET (NO REQUEST SENT)
+  // LIVE STREAMING VIA WEBSOCKET (Optimized for High Volume Data)
   useEffect(() => {
     if (!lastMessage) return;
 
@@ -106,10 +140,27 @@ const Dashboard = ({ showToast }) => {
           fraud_rate: Number(calcRate.toFixed(2))
         };
       });
+
+      // Update the latest point on the Trend Chart dynamically
+      setTrendData((prevTrend) => {
+        if (!prevTrend || prevTrend.length === 0) return prevTrend;
+        const updated = [...prevTrend];
+        const lastIdx = updated.length - 1;
+        const currentLastPoint = { ...updated[lastIdx] };
+
+        if (is_fraud) {
+          currentLastPoint["Miamala ya Utapeli"] = (currentLastPoint["Miamala ya Utapeli"] || 0) + 1;
+        } else {
+          currentLastPoint["Miamala Salama"] = (currentLastPoint["Miamala Salama"] || 0) + 1;
+        }
+
+        updated[lastIdx] = currentLastPoint;
+        return updated;
+      });
     }
   }, [lastMessage]);
 
-  // AGENT QUERY (SINGLE REQUEST EXCEPTION)
+  // AGENT QUERY
   const executeAgentQuery = async () => {
     setShowConfirmModal(false);
     setAgentLoading(true);
@@ -212,7 +263,7 @@ const Dashboard = ({ showToast }) => {
           { key: 'confirmedFraud', val: stats.confirmed_frauds.toLocaleString(), label: 'UTAPELI ULIOTHIBITISHWA', icon: <FcCheckmark className="text-2xl" /> },
           { key: 'fraudRate', val: `${stats.fraud_rate.toFixed(2)}%`, label: 'KIWANGO CHA HATARI', icon: <FcComboChart className="text-2xl" /> }
         ].map((item, idx) => (
-          <div key={idx} className="neo-card-hover p-5 flex flex-col justify-between">
+          <div key={idx} className="neo-card p-5 flex flex-col justify-between">
             <div className="flex items-center justify-between">
               <span className="text-slate-500 text-[10px] font-black uppercase tracking-wider">
                 {t(item.key) || item.label}
@@ -238,11 +289,11 @@ const Dashboard = ({ showToast }) => {
         {trendData.length > 0 ? (
           <div className="h-96 w-full pt-2 neo-inset p-4 rounded-2xl">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={trendData} margin={{ top: 15, right: 15, left: -15, bottom: 5 }} barGap={3}>
+              <BarChart data={trendData} margin={{ top: 15, right: 15, left: -15, bottom: 5 }} barGap={4}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" vertical={false} />
                 <XAxis dataKey="time_label" stroke="#475569" fontSize={10} tickLine={false} fontWeight={800} />
                 <YAxis stroke="#475569" fontSize={11} tickLine={false} axisLine={false} fontWeight={800} />
-                <Tooltip />
+                <Tooltip cursor={{ fill: 'rgba(226, 232, 240, 0.4)' }} />
                 <Legend />
                 <Bar dataKey="Miamala Salama" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={22} />
                 <Bar dataKey="Miamala ya Utapeli" fill="#f43f5e" radius={[4, 4, 0, 0]} maxBarSize={22} />
@@ -259,62 +310,109 @@ const Dashboard = ({ showToast }) => {
       {/* Confirmation Modal */}
       {showConfirmModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="neo-card max-w-md w-full p-6 space-y-4 bg-white rounded-3xl">
-            <h4 className="font-black text-sm uppercase text-slate-800">Thibitisha Swali la Agent</h4>
-            <p className="text-xs text-slate-600 font-medium">Je, unathibitisha kutekeleza query ifuatayo?</p>
-            <div className="neo-inset p-3 rounded-xl text-xs font-bold text-indigo-900 bg-indigo-50/50 font-mono">
+          <div className="neo-card max-w-md w-full p-6 space-y-4 bg-slate-100 rounded-3xl">
+            <h4 className="font-black text-sm uppercase text-slate-800 flex items-center gap-2">
+              <FcBinoculars className="text-xl" /> Thibitisha Swali la Agent
+            </h4>
+            <p className="text-xs text-slate-600 font-medium">Je, unathibitisha kutekeleza query ifuatayo kwenye Mfumo?</p>
+            <div className="neo-inset p-3 rounded-xl text-xs font-bold text-indigo-900 font-mono">
               "{agentQuery}"
             </div>
             <div className="flex items-center justify-end gap-3 pt-2">
-              <button type="button" onClick={() => setShowConfirmModal(false)} className="neo-button px-4 py-2 text-xs font-bold rounded-xl">Ghairi</button>
+              <button type="button" onClick={() => setShowConfirmModal(false)} className="neo-button px-4 py-2 text-xs font-bold rounded-xl text-slate-600">Ghairi</button>
               <button type="button" onClick={executeAgentQuery} className="neo-button px-5 py-2 text-indigo-600 font-black text-xs rounded-xl">Thibitisha</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Child Page Terminal View Modal */}
+      {/* Child Page Terminal View Modal (Neumorphic Style) */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className={`neo-card overflow-hidden flex flex-col bg-slate-900 text-slate-100 border border-slate-700 shadow-2xl transition-all ${
-            isMaximized ? 'w-full h-full rounded-none' : 'w-full max-w-7xl h-[90vh] rounded-3xl'
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-md flex items-center justify-center p-4">
+          <div className={`neo-card overflow-hidden flex flex-col bg-slate-100 text-slate-800 transition-all ${
+            isMaximized ? 'w-full h-full rounded-none' : 'w-full max-w-7xl h-[85vh] rounded-3xl'
           }`}>
-            <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950">
-              <h4 className="font-black text-xs text-indigo-400 uppercase">{agentResponse?.title || "Forensic Child Page Window"}</h4>
+            <div className="p-4 border-b border-slate-300/60 flex items-center justify-between bg-slate-100">
+              <div className="flex items-center gap-2">
+                <FcBinoculars className="text-xl" />
+                <h4 className="font-black text-xs text-indigo-600 uppercase tracking-wider">
+                  {agentResponse?.title || "Matokeo ya Uchambuzi wa Kiuchunguzi"}
+                </h4>
+              </div>
               <div className="flex gap-2">
-                <button type="button" onClick={() => setIsMaximized(!isMaximized)} className="px-3 py-1 bg-slate-800 text-xs rounded-xl text-slate-300 font-bold">
-                  {isMaximized ? 'Restore' : 'Maximize'}
+                <button type="button" onClick={() => setIsMaximized(!isMaximized)} className="neo-button p-2 text-xs rounded-xl text-slate-700 font-bold flex items-center gap-1">
+                  <HiArrowsExpand /> {isMaximized ? 'Restore' : 'Maximize'}
                 </button>
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-3 py-1 bg-rose-950 text-rose-300 text-xs rounded-xl font-bold">Funga</button>
+                <button type="button" onClick={() => setIsModalOpen(false)} className="neo-button p-2 text-rose-600 text-xs rounded-xl font-bold flex items-center gap-1">
+                  <HiX className="text-base" /> Funga
+                </button>
               </div>
             </div>
 
-            <div className="p-6 overflow-y-auto space-y-4 flex-1 bg-slate-900">
+            <div className="p-6 overflow-y-auto space-y-4 flex-1">
               {agentLoading ? (
-                <div className="min-h-[300px] flex items-center justify-center text-xs font-bold text-indigo-400">
-                  Agent anatekeleza Query na kuandaa Child Page...
+                <div className="min-h-[300px] flex flex-col items-center justify-center gap-3 text-xs font-bold text-indigo-600">
+                  <span className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin"></span>
+                  <span>Agent anatekeleza Query na kuandaa Child Page...</span>
                 </div>
               ) : (
-                <div className="overflow-x-auto bg-slate-950 rounded-2xl p-4 border border-slate-800 shadow-inner">
-                  <table className="w-full text-left font-mono text-xs">
-                    <thead>
-                      <tr className="border-b border-slate-800 text-indigo-300">
-                        {childPageItems.length > 0 && Object.keys(childPageItems[0]).map((k) => (
-                          <th key={k} className="p-2 uppercase">{k}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {paginatedChildItems.map((row, i) => (
-                        <tr key={i} className="border-b border-slate-800/40 hover:bg-slate-800/50">
-                          {Object.values(row).map((val, idx) => (
-                            <td key={idx} className="p-2">{String(val)}</td>
+                <>
+                  <div className="overflow-x-auto neo-inset p-4 rounded-2xl">
+                    <table className="w-full text-left font-mono text-xs">
+                      <thead>
+                        <tr className="border-b border-slate-300/60 text-indigo-900">
+                          {childPageItems.length > 0 && Object.keys(childPageItems[0]).map((k) => (
+                            <th key={k} className="p-3 uppercase font-black">{k.replace(/_/g, ' ')}</th>
                           ))}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {paginatedChildItems.length > 0 ? (
+                          paginatedChildItems.map((row, i) => (
+                            <tr key={i} className="border-b border-slate-200/60 hover:bg-slate-200/40 transition-colors">
+                              {Object.values(row).map((val, idx) => (
+                                <td key={idx} className="p-3 text-slate-700 font-bold">{String(val)}</td>
+                              ))}
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={10} className="p-6 text-center text-slate-500 font-bold">
+                              Hakuna Kumbukumbu zilizopatikana kulingana na query yako.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Child Page Pagination Controls */}
+                  {childPageItems.length > 0 && (
+                    <div className="flex items-center justify-between pt-2">
+                      <span className="text-xs font-bold text-slate-500">
+                        Ukurasa {currentPage} kati ya {totalPages} (Jumla: {childPageItems.length})
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          disabled={currentPage === 1}
+                          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                          className="neo-button p-2 text-xs font-bold rounded-xl disabled:opacity-40"
+                        >
+                          <HiChevronLeft className="text-base" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={currentPage === totalPages}
+                          onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                          className="neo-button p-2 text-xs font-bold rounded-xl disabled:opacity-40"
+                        >
+                          <HiChevronRight className="text-base" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>

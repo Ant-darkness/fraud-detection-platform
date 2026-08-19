@@ -2,6 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { api } from '../services/api';
 import { useWebSocket } from '../context/WebSocketContext';
+import { FcDebt, FcSynchronize } from "react-icons/fc";
+import { HiArrowsPointingOut, HiArrowsPointingIn, HiRadio } from "react-icons/hi2";
+
+
 
 const Transactions = ({ showToast }) => {
   const { t } = useLanguage();
@@ -40,7 +44,7 @@ const Transactions = ({ showToast }) => {
           }
         }
       } catch (error) {
-        if (isMounted) notify("Imeshindikana kupakia orodha ya miamala.", "error");
+        if (isMounted) notify("Imeshindikana kupakia orodha ya miamala ya benki.", "error");
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -50,7 +54,7 @@ const Transactions = ({ showToast }) => {
     return () => { isMounted = false; };
   }, [currentPage, limit, notify]);
 
-  // LIVE STREAMING INGESTION (NO REQUEST SENT)
+  // LIVE STREAMING INGESTION (WEBSOCKET FEED)
   useEffect(() => {
     if (!lastMessage || lastMessage.event_type !== 'NEW_TRANSACTION') return;
     const { transaction } = lastMessage;
@@ -58,7 +62,7 @@ const Transactions = ({ showToast }) => {
 
     setTransactions((prevTx) => {
       if (prevTx.length >= MAX_LIVE_BUFFER) {
-        notify("⚡ Live Buffer full. Resetting local buffer...", "info");
+        notify("⚡ Live Stream Buffer imejaa. Inafanya auto-reset...", "info");
         return [transaction];
       }
       return [transaction, ...prevTx];
@@ -70,99 +74,137 @@ const Transactions = ({ showToast }) => {
   const totalPages = Math.ceil(totalCount / limit) || 1;
 
   const formatTimeOrStep = (tx) => {
-    if (tx.created_at) {
+    if (tx.created_at || tx.timestamp) {
       try {
-        return new Date(tx.created_at).toLocaleString('sw-TZ', { hour12: false });
+        return new Date(tx.created_at || tx.timestamp).toLocaleString('sw-TZ', { 
+          hour12: false,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
       } catch {
-        return tx.created_at;
+        return tx.created_at || tx.timestamp;
       }
     }
     if (tx.step !== undefined && tx.step !== null) return `Step ${tx.step}`;
     return "N/A";
   };
 
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('sw-TZ', {
+      style: 'currency',
+      currency: 'TZS',
+      maximumFractionDigits: 2
+    }).format(Number(amount) || 0);
+  };
+
   return (
-    <div className={`transition-all duration-300 font-sans select-none bg-[#F2C4CE] text-slate-900 border border-pink-300/80 shadow-2xl ${
+    <div className={`transition-all duration-300 font-sans select-none neo-card p-5 sm:p-6 text-slate-800 ${
       isMaximized 
-        ? 'fixed inset-2 md:inset-4 z-50 rounded-3xl p-6 flex flex-col justify-between overflow-hidden' 
-        : 'rounded-3xl p-6 relative overflow-hidden'
+        ? 'fixed inset-2 md:inset-4 z-50 bg-slate-100 rounded-3xl p-6 flex flex-col justify-between overflow-hidden shadow-2xl border border-slate-300' 
+        : 'rounded-3xl relative overflow-hidden border border-slate-300/80'
     }`}>
       
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 shrink-0">
+      {/* Professional Header Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 pb-4 border-b border-slate-300/80 shrink-0">
         <div className="flex items-center gap-3 flex-wrap">
-          <h3 className="text-sm sm:text-base font-black text-slate-950 uppercase tracking-wider flex items-center gap-2">
-            <span>⚡</span> LIVE TRANSACTIONS FEED
-          </h3>
+          <FcDebt className="text-3xl" />
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wider">
+                REAL-TIME TRANSACTION STREAMING FEED
+              </h3>
+              {/* WebSocket Live Pulsing Indicator */}
+              <span className="flex items-center gap-1.5 bg-emerald-100 text-emerald-800 border border-emerald-300 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold tracking-wider uppercase">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                LIVE WS
+              </span>
+            </div>
+            <span className="text-[10px] text-slate-500 font-mono font-bold">
+              Automated Bank Transaction Ingestion & Fraud Pre-Screening
+            </span>
+          </div>
+
           <button
             type="button"
             onClick={() => setIsMaximized(!isMaximized)}
-            className="px-3 py-1.5 bg-slate-950 text-pink-200 border border-slate-800 rounded-xl text-xs font-extrabold uppercase shadow-md cursor-pointer"
+            className="neo-button px-3 py-1.5 text-slate-700 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer ml-2"
           >
-            {isMaximized ? '🗗 Minimize' : '🗖 Maximize'}
+            {isMaximized ? <><HiArrowsPointingOut /> MINIMIZE</> : <><HiArrowsPointingIn /> MAXIMIZE</>}
           </button>
         </div>
         
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="text-xs font-bold text-slate-100 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 font-mono">
-            Live Buffer: <span className="text-pink-300 font-black">{transactions.length}/{MAX_LIVE_BUFFER}</span>
+        {/* Real-time Telemetry Stats */}
+        <div className="flex items-center gap-3 flex-wrap font-mono text-xs">
+          <div className="neo-inset px-3 py-1.5 rounded-xl border border-slate-300/60 font-bold text-slate-600">
+            Buffer: <span className="text-indigo-600 font-black">{transactions.length}/{MAX_LIVE_BUFFER}</span>
           </div>
-          <div className="text-xs font-bold text-slate-100 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
-            Jumla: <span className="text-pink-300 font-mono font-black">{totalCount.toLocaleString()}</span> miamala
+          <div className="neo-inset px-3 py-1.5 rounded-xl border border-slate-300/60 font-bold text-slate-600">
+            Total Records: <span className="text-slate-900 font-black">{totalCount.toLocaleString()}</span>
           </div>
         </div>
       </div>
 
-      {/* Table Content */}
+      {/* Main Streaming Table View */}
       {loading && transactions.length === 0 ? (
-        <div className="grow flex items-center justify-center min-h-[40vh]">
-          <span className="w-10 h-10 border-4 border-slate-950 border-t-transparent rounded-full animate-spin"></span>
+        <div className="grow flex flex-col items-center justify-center min-h-[40vh] space-y-3">
+          <span className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></span>
+          <p className="text-xs font-mono text-slate-500 font-bold">Inapakia miamala kutoka benki...</p>
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto grow bg-slate-950/5 rounded-2xl border border-pink-300/80 scrollbar-thin">
-            <table className="w-full text-left border-collapse min-w-[950px]">
+          <div className="overflow-x-auto grow neo-inset rounded-2xl border border-slate-300/70 shadow-inner scrollbar-thin">
+            <table className="w-full text-left border-collapse min-w-[980px]">
               <thead>
-                <tr className="bg-pink-300/40 border-b border-pink-300/80 text-xs text-pink-950 uppercase font-black">
-                  <th className="py-3.5 px-4">Muda / Step</th>
-                  <th className="py-3.5 px-4">Aina (Type)</th>
-                  <th className="py-3.5 px-4">Kiasi (Amount)</th>
-                  <th className="py-3.5 px-4 bg-pink-300/20">Mtumaji (Orig Account)</th>
-                  <th className="py-3.5 px-4 bg-pink-300/20">Salio Jipya (Orig)</th>
-                  <th className="py-3.5 px-4 bg-pink-300/30">Mpokeaji (Dest Account)</th>
-                  <th className="py-3.5 px-4 bg-pink-300/30">Salio Jipya (Dest)</th>
+                <tr className="border-b border-slate-300 text-[11px] text-slate-700 uppercase tracking-wider font-black bg-slate-200/70 font-mono">
+                  <th className="py-3.5 px-4 border-r border-slate-300">Timestamp / Step</th>
+                  <th className="py-3.5 px-4 border-r border-slate-300 text-center">Type</th>
+                  <th className="py-3.5 px-4 border-r border-slate-300">Amount</th>
+                  <th className="py-3.5 px-4 border-r border-slate-300 bg-slate-200/30">Sender (Orig)</th>
+                  <th className="py-3.5 px-4 border-r border-slate-300 bg-slate-200/30">New Bal (Orig)</th>
+                  <th className="py-3.5 px-4 border-r border-slate-300 bg-slate-200/50">Receiver (Dest)</th>
+                  <th className="py-3.5 px-4 bg-slate-200/50">New Bal (Dest)</th>
                 </tr>
               </thead>
-              <tbody className="text-xs sm:text-sm text-slate-950 divide-y divide-pink-300/50 font-mono">
+              <tbody className="text-xs font-mono text-slate-800 divide-y divide-slate-300/60">
                 {transactions.map((tx, index) => (
-                  <tr key={tx.transaction_id || tx.id || index} className="hover:bg-pink-300/20 transition-colors">
-                    <td className="py-3 px-4 text-pink-950 font-bold whitespace-nowrap">{formatTimeOrStep(tx)}</td>
-                    <td className="py-3 px-4">
-                      <span className="bg-slate-950 text-pink-300 border border-slate-800 px-2 py-0.5 rounded text-[10px] font-black uppercase">
-                        {tx.type || "TRANSFER"}
+                  <tr key={tx.transaction_id || tx.id || index} className="transition-all hover:bg-indigo-50/50">
+                    <td className="py-3 px-4 font-bold text-slate-600 border-r border-slate-300/60 whitespace-nowrap">
+                      {formatTimeOrStep(tx)}
+                    </td>
+                    <td className="py-3 px-4 text-center border-r border-slate-300/60">
+                      <span className="bg-indigo-100 text-indigo-800 border border-indigo-300 px-2 py-0.5 rounded-lg text-[10px] font-black tracking-wider uppercase">
+                        {tx.type || tx.action || "PAYMENT"}
                       </span>
                     </td>
-                    <td className="py-3 px-4 font-black text-slate-950 whitespace-nowrap">
-                      TZS {Number(tx.amount || 0).toLocaleString()}
+                    <td className="py-3 px-4 font-black text-slate-900 border-r border-slate-300/60 whitespace-nowrap">
+                      {formatCurrency(tx.amount)}
                     </td>
-                    <td className="py-3 px-4 text-slate-900 font-sans font-semibold">
+                    <td className="py-3 px-4 text-slate-700 font-bold border-r border-slate-300/60">
                       {tx.nameorig || tx.nameOrig || "N/A"}
                     </td>
-                    <td className="py-3 px-4 text-slate-950 font-black whitespace-nowrap">
-                      TZS {Number(tx.newbalanceorig ?? tx.newbalanceOrig ?? 0).toLocaleString()}
+                    <td className="py-3 px-4 font-bold text-slate-900 border-r border-slate-300/60 whitespace-nowrap">
+                      {formatCurrency(tx.newbalanceorig ?? tx.newbalanceOrig)}
                     </td>
-                    <td className="py-3 px-4 text-slate-900 font-sans font-semibold">
+                    <td className="py-3 px-4 text-slate-700 font-bold border-r border-slate-300/60">
                       {tx.namedest || tx.nameDest || "N/A"}
                     </td>
-                    <td className="py-3 px-4 text-slate-950 font-black whitespace-nowrap">
-                      TZS {Number(tx.newbalancedest ?? tx.newbalanceDest ?? 0).toLocaleString()}
+                    <td className="py-3 px-4 font-bold text-slate-900 whitespace-nowrap">
+                      {formatCurrency(tx.newbalancedest ?? tx.newbalanceDest)}
                     </td>
                   </tr>
                 ))}
+
                 {transactions.length === 0 && (
                   <tr>
-                    <td colSpan="7" className="py-12 text-center text-pink-950 text-xs font-sans font-extrabold">
-                      Hakuna miamala inayoingia kwa sasa.
+                    <td colSpan="7" className="py-12 text-center text-slate-500 font-sans font-bold">
+                      <div className="flex flex-col items-center justify-center space-y-2">
+                        <FcSynchronize className="text-4xl animate-spin" />
+                        <p>Hakuna miamala inayoingia kwa sasa. Subiri miamala ya live stream...</p>
+                      </div>
                     </td>
                   </tr>
                 )}
@@ -170,22 +212,25 @@ const Transactions = ({ showToast }) => {
             </table>
           </div>
 
+          {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="flex justify-between items-center text-xs font-bold text-pink-950 pt-4 shrink-0">
+            <div className="flex justify-between items-center text-xs font-bold text-slate-700 pt-4 shrink-0 font-mono">
               <button
+                type="button"
                 disabled={currentPage <= 1}
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                className="px-3 py-1.5 rounded-xl bg-slate-950 text-pink-200 disabled:opacity-40 cursor-pointer"
+                className="neo-button px-4 py-2 rounded-xl text-slate-800 disabled:opacity-40 cursor-pointer font-black"
               >
-                ◀️ Inayotangulia
+                ◀ Inayotangulia
               </button>
-              <span>Ukurasa <strong className="text-slate-950">{currentPage}</strong> kati ya <strong>{totalPages}</strong></span>
+              <span>Ukurasa <strong className="text-indigo-600 font-black">{currentPage}</strong> kati ya <strong>{totalPages}</strong></span>
               <button
+                type="button"
                 disabled={currentPage >= totalPages}
                 onClick={() => setCurrentPage((p) => p + 1)}
-                className="px-3 py-1.5 rounded-xl bg-slate-950 text-pink-200 disabled:opacity-40 cursor-pointer"
+                className="neo-button px-4 py-2 rounded-xl text-slate-800 disabled:opacity-40 cursor-pointer font-black"
               >
-                Inayofuata ▶️
+                Inayofuata ▶
               </button>
             </div>
           )}

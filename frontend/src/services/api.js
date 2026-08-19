@@ -1,6 +1,7 @@
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 const WS_BASE_URL = import.meta.env.VITE_WS_BASE_URL || "ws://localhost:8000/ws/live-feed";
 
+// Helper ya kutengeneza Headers pamoja na Auth Token
 const getHeaders = (customToken = null) => {
   const headers = {
     'Content-Type': 'application/json',
@@ -22,6 +23,7 @@ const getHeaders = (customToken = null) => {
   return headers;
 };
 
+// Helper ya kusimamia majibu ya Server na Errors
 const handleResponse = async (response) => {
   if (!response.ok) {
     try {
@@ -35,7 +37,9 @@ const handleResponse = async (response) => {
 };
 
 export const api = {
-  // --- WEBSOCKET SERVICE ---
+  // -------------------------------------------------------------
+  // WEBSOCKET SERVICE (Kwa ajili ya Subscriptions/Custom Connections)
+  // -------------------------------------------------------------
   ws: {
     connect: (onMessage, onError) => {
       let socket = null;
@@ -83,7 +87,9 @@ export const api = {
     }
   },
 
-  // --- AUTHENTICATION ---
+  // -------------------------------------------------------------
+  // AUTHENTICATION
+  // -------------------------------------------------------------
   auth: {
     login: async (email, password) => {
       const response = await fetch(`${BASE_URL}/auth/login`, {
@@ -133,7 +139,9 @@ export const api = {
     }
   },
 
-  // --- DASHBOARD & REALTIME AI AGENTS ---
+  // -------------------------------------------------------------
+  // DASHBOARD & ANALYTICS DATA
+  // -------------------------------------------------------------
   dashboard: {
     getSummary: async () => {
       const response = await fetch(`${BASE_URL}/dashboard/summary`, { headers: getHeaders() });
@@ -162,6 +170,7 @@ export const api = {
       return handleResponse(response);
     },
 
+    // Inatumia WebSocket standalone pekee ikiwa hautaki kutumia WebSocketContext
     connectVolumeWebSocket: (onMessageCallback, timeframe = '24hrs') => {
       const wsClient = api.ws.connect((data) => {
         if (data.event_type === 'LIVE_PULSE_UPDATE' && onMessageCallback) {
@@ -169,38 +178,23 @@ export const api = {
         }
       });
 
-      wsClient.send({ timeframe });
+      // Tuma timeframe mara baada ya kuunganisha
+      setTimeout(() => {
+        wsClient.send({ timeframe });
+      }, 500);
 
       return {
         changeTimeframe: (newTimeframe) => wsClient.send({ timeframe: newTimeframe }),
         close: () => wsClient.close()
       };
-    },
-
-    // -------------------------------------------------------------
-    // REAL-TIME ANALYTICS AGENTS (VOLUME & FRAUD AGENTS)
-    // -------------------------------------------------------------
-    getVolumeAnalyticsAgent: async (timeframe = '7DAYS', language = 'sw') => {
-      const response = await fetch(
-        `${BASE_URL}/api/v1/agents/volume-analytics?timeframe=${timeframe}&language=${language}`, 
-        { headers: getHeaders() }
-      );
-      return handleResponse(response);
-    },
-
-    getFraudAnalyticsAgent: async (timeframe = '7DAYS', language = 'sw') => {
-      const response = await fetch(
-        `${BASE_URL}/api/v1/agents/fraud-analytics?timeframe=${timeframe}&language=${language}`, 
-        { headers: getHeaders() }
-      );
-      return handleResponse(response);
     }
   },
 
   // -------------------------------------------------------------
-  // SCOPED FORENSIC SEARCH ASSISTANT (SCOPED QUERY AGENT)
+  // AI AGENTS & ASSISTANTS (ON-DEMAND REQUESTS - NO WEBSOCKET)
   // -------------------------------------------------------------
   agents: {
+    // Agent wa kujibu maswali ya mtumiaji (Scoped Forensic Search Assistant)
     askScopedAgent: async (prompt, context = "business") => {
       const response = await fetch(`${BASE_URL}/api/v1/agents/query`, {
         method: 'POST',
@@ -210,6 +204,25 @@ export const api = {
       return handleResponse(response);
     },
 
+    // Agent wa Uchambuzi wa Volume (On-Demand Summary / Insights)
+    getVolumeAnalyticsAgent: async (timeframe = '7DAYS', language = 'sw') => {
+      const response = await fetch(
+        `${BASE_URL}/api/v1/agents/volume-analytics?timeframe=${timeframe}&language=${language}`, 
+        { headers: getHeaders() }
+      );
+      return handleResponse(response);
+    },
+
+    // Agent wa Uchambuzi wa Fraud (On-Demand Summary / Insights)
+    getFraudAnalyticsAgent: async (timeframe = '7DAYS', language = 'sw') => {
+      const response = await fetch(
+        `${BASE_URL}/api/v1/agents/fraud-analytics?timeframe=${timeframe}&language=${language}`, 
+        { headers: getHeaders() }
+      );
+      return handleResponse(response);
+    },
+
+    // Agent wa kufanya Audit ya Machine Learning Models
     triggerModelAudit: async (modelId, metrics) => {
       const response = await fetch(`${BASE_URL}/api/v1/agents/model-audit`, {
         method: 'POST',
@@ -220,7 +233,9 @@ export const api = {
     }
   },
 
-  // --- AI MODELS & INTEGRATED METRICS ---
+  // -------------------------------------------------------------
+  // AI MODELS MANAGEMENT
+  // -------------------------------------------------------------
   models: {
     getAll: async () => {
       const response = await fetch(`${BASE_URL}/models/`, { headers: getHeaders() });
@@ -252,7 +267,9 @@ export const api = {
     }
   },
 
-  // --- REVIEWS ---
+  // -------------------------------------------------------------
+  // MANUAL FRAUD REVIEWS
+  // -------------------------------------------------------------
   reviews: {
     getPending: async (page = 1, limit = 10) => {
       const response = await fetch(`${BASE_URL}/reviews/pending?page=${page}&limit=${limit}`, { headers: getHeaders() });
@@ -268,7 +285,9 @@ export const api = {
     }
   },
 
-  // --- TRANSACTIONS ---
+  // -------------------------------------------------------------
+  // TRANSACTIONS MANAGEMENT
+  // -------------------------------------------------------------
   transactions: {
     getAll: async ({ page = 1, limit = 15 } = {}) => {
       const response = await fetch(`${BASE_URL}/transactions/?page=${page}&limit=${limit}`, { headers: getHeaders() });
@@ -280,7 +299,9 @@ export const api = {
     }
   },
 
-  // --- OFFICERS (ADMIN ONLY) ---
+  // -------------------------------------------------------------
+  // OFFICERS / USERS MANAGEMENT (ADMIN ONLY)
+  // -------------------------------------------------------------
   officers: {
     list: async () => {
       const response = await fetch(`${BASE_URL}/officers/`, { headers: getHeaders() });

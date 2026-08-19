@@ -9,10 +9,10 @@ const OfficersAdmin = ({ showToast }) => {
   const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Form State zenye Default Values za Abely Ntandu
-  const [formName, setFormName] = useState('Abely Ntandu');
-  const [formUsername, setFormUsername] = useState('Ntandu');
-  const [formEmail, setFormEmail] = useState('ntandu@bot.go.tz');
+  
+  const [formName, setFormName] = useState('');
+  const [formUsername, setFormUsername] = useState('');
+  const [formEmail, setFormEmail] = useState('');
   const [formPassword, setFormPassword] = useState('');
   const [formRole, setFormRole] = useState('OFFICER');
 

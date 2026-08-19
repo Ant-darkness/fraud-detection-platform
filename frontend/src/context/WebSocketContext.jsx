@@ -50,6 +50,13 @@ export const WebSocketProvider = ({ children }) => {
     }
   }, []);
 
+  // Function ya kutuma data kupitia WebSocket iliyopo
+  const sendMessage = useCallback((msg) => {
+    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+      socketRef.current.send(typeof msg === 'string' ? msg : JSON.stringify(msg));
+    }
+  }, []);
+
   useEffect(() => {
     connectWebSocket();
 
@@ -60,7 +67,7 @@ export const WebSocketProvider = ({ children }) => {
   }, [connectWebSocket]);
 
   return (
-    <WebSocketContext.Provider value={{ lastMessage, isConnected }}>
+    <WebSocketContext.Provider value={{ lastMessage, isConnected, sendMessage }}>
       {children}
     </WebSocketContext.Provider>
   );

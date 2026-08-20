@@ -14,7 +14,7 @@ from backend.api.routes.metric_routes import router as metric_router
 from backend.api.routes.websocket_routes import router as websocket_router
 from backend.api.routes.analytics_routes import router as analytics_router
 from backend.api.routes.agentic_routes import router as agentic_router
-
+from backend.api.routes.forensic_routes import router as forensic_router
 from backend.app.core.lifespan import lifespan
 
 app = FastAPI(title="Fraud Detection API", lifespan=lifespan)
@@ -45,3 +45,4 @@ app.include_router(notification_router)
 app.include_router(websocket_router)
 app.include_router(analytics_router)
 app.include_router(agentic_router)
+app.include_router(forensic_router)

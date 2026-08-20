@@ -1,6 +1,9 @@
 
 # Start Commands
 
+**Initialize Database Schema**
+docker exec -it fraud-postgres psql -U postgres -d FraudDB
+
 **INITILIZE CDC connector**
 python scripts/setup_cdc.py
 

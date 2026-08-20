@@ -84,7 +84,7 @@ def on_airflow_dag_success(context: dict):
     }
 
     try:
-        endpoint = f"{BACKEND_API_URL}/api/v1/notifications/airflow-alert"
+        endpoint = f"{BACKEND_API_URL}/notifications/airflow-alert"
         response = requests.post(endpoint, json=payload, timeout=10)
 
         if response.status_code == 200:

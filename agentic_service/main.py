@@ -1,158 +1,216 @@
-import os
-import json
 import logging
-import traceback
-from typing import Dict, Any, Optional
+import os
+from typing import Dict, Any, Optional, List
 
-import google.generativeai as genai
-from fastapi import FastAPI, HTTPException, Query
+import httpx
+from fastapi import (
+    FastAPI,
+    APIRouter,
+    HTTPException,
+    Query,
+    WebSocket,
+    WebSocketDisconnect,
+    BackgroundTasks,
+    Response,
+    status
+)
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from agentic_service.analytics_engine import fetch_volume_data, fetch_fraud_data
+# Imports za Services Zako
+from agentic_service.services.query_agent import QueryAgent
+from agentic_service.services.volume_agent import VolumeMetricsAgent
+from agentic_service.services.fraud_agent import FraudMetricsAgent
+from agentic_service.services.trend_agent import TrendAgent
+from agentic_service.services.model_audit_agent import ModelAuditAgent
+from agentic_service.services.report_agent import ReportGeneratorAgent
+from agentic_service.services.chart_agent import ChartGeneratorAgent
 
-# Logging Setup
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("agentic_service")
 
-# Gemini Setup
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-model_name = os.getenv("GEMINI_MODEL_NAME", "gemini-1.5-flash")
-
+# 1. INITIALIZE FASTAPI APP
 app = FastAPI(
-    title="Bank Fraud Platform - Agentic Microservice",
-    version="3.0.0",
-    description="Production-Ready Agentic AI Engine supporting Scoped Forensics, Real-time Dashboard Analytics, and Model Auditing."
+    title="Bank of Tanzania - Forensic Intelligence Microservice",
+    version="3.5.0",
+    description="Enterprise Fraud, Volume Analytics, Charting, and PDF Reporting Microservice"
 )
 
+# CORS Config
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-# ==================================================
-# REQUEST SCHEMAS (Pydantic Models)
-# ==================================================
+# ==========================================
+# WEBSOCKET MANAGER FOR REAL-TIME PUSH
+# ==========================================
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: dict):
+        stale_connections = []
+        for connection in list(self.active_connections):
+            try:
+                await connection.send_json(message)
+            except Exception:
+                stale_connections.append(connection)
+        
+        for connection in stale_connections:
+            self.disconnect(connection)
+
+ws_manager = ConnectionManager()
+
+# ==========================================
+# SCHEMAS (PYDANTIC)
+# ==========================================
 
 class ScopedQueryReq(BaseModel):
-    prompt: str = Field(...,
-                        example="Nionyeshe miamala iliyozidi TSH 10M mwezi uliopita")
-    context: Optional[str] = Field(
-        "business", example="fraud | volume | business")
-
+    prompt: str = Field(..., example="Nionyeshe miamala iliyozidi TSH 10M mwezi uliopita")
+    context: Optional[str] = Field("business", example="fraud | volume | business")
 
 class ModelAuditReq(BaseModel):
     model_id: int = Field(..., example=1)
-    metrics: Dict[str, Any] = Field(..., example={
-                                    "precision": 0.85, "recall": 0.78, "f1_score": 0.81, "roc_auc": 0.92})
+    metrics: Dict[str, Any] = Field(..., example={"precision": 0.85, "recall": 0.78, "f1_score": 0.81, "roc_auc": 0.92})
 
+class ReportGenReq(BaseModel):
+    title: str
+    summary: str
+    data: list
 
-# ==================================================
-# API ENDPOINTS
-# ==================================================
+# ==========================================
+# DIRECT CORE AGENT ENDPOINTS (/agent/*)
+# ==========================================
 
 @app.get("/health")
 def health_check():
-    return {"status": "healthy", "service": "agentic_service", "version": "3.0.0"}
+    return {"status": "healthy", "service": "agentic_service", "version": "3.5.0"}
 
-
-# 1. SCOPED FORENSIC ASSISTANT SEARCH
 @app.post("/agent/query")
 async def handle_scoped_query(req: ScopedQueryReq):
     try:
-        logger.info(
-            f"Processing Scoped Query | Context: {req.context} | Prompt: {req.prompt}")
-        model = genai.GenerativeModel(model_name)
-        prompt = f"Context: {req.context}\nUser Question: {req.prompt}"
-        response = model.generate_content(prompt)
-        return {"status": "success", "response": response.text}
+        return QueryAgent.process_query(user_prompt=req.prompt, context=req.context)
     except Exception as e:
         logger.error(f"[QUERY AGENT ERROR]: {str(e)}")
-        traceback.print_exc()
-        raise HTTPException(
-            status_code=500, detail=f"QueryAgent Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-
-# 2. VOLUME ANALYTICS AGENT
 @app.get("/agent/volume-analytics")
 async def handle_volume_analytics(
+    background_tasks: BackgroundTasks,
     timeframe: str = Query("7DAYS", description="24HRS, 7DAYS, 4WEEKS, 1YEAR"),
     language: str = Query("sw", description="sw au en")
 ):
     try:
-        logger.info(
-            f"Generating Volume Analytics | Timeframe: {timeframe} | Lang: {language}")
-        raw_data = fetch_volume_data(timeframe)
-
-        lang_prompt = "Andika kwa Kiswahili rasmi cha kibenki." if language == "sw" else "Write in professional banking English."
-        prompt = f"""
-        Wewe ni Mtaalamu wa Uchumi Mkuu kutoka Benki Kuu ya Tanzania (BoT).
-        Tathmini takwimu hizi za miamala kwa kipindi cha {timeframe}:
-        {json.dumps(raw_data, indent=2)}
-
-        Toa muhtasari mfupi (isizidi maneno 60) wa mzunguko wa fedha na tathmini ya kiuchumi.
-        {lang_prompt}
-        """
-
-        model = genai.GenerativeModel(model_name)
-        response = model.generate_content(prompt)
-
-        return {
-            "status": "success",
-            "timeframe": timeframe,
-            "metrics": raw_data,
-            "ai_summary": response.text
-        }
+        data = VolumeMetricsAgent.analyze_volume(timeframe=timeframe, language=language)
+        background_tasks.add_task(
+            ws_manager.broadcast,
+            {"event": "VOLUME_UPDATE", "data": data}
+        )
+        return data
     except Exception as e:
         logger.error(f"[VOLUME AGENT ERROR]: {str(e)}")
-        traceback.print_exc()
-        raise HTTPException(
-            status_code=500, detail=f"Volume Processing Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-
-# 3. FRAUD FORENSICS AGENT
 @app.get("/agent/fraud-analytics")
 async def handle_fraud_analytics(
+    background_tasks: BackgroundTasks,
     timeframe: str = Query("7DAYS", description="24HRS, 7DAYS, 4WEEKS, 1YEAR"),
     language: str = Query("sw", description="sw au en")
 ):
     try:
-        logger.info(
-            f"Generating Fraud Analytics | Timeframe: {timeframe} | Lang: {language}")
-        raw_data = fetch_fraud_data(timeframe)
-
-        lang_prompt = "Andika kwa Kiswahili cha kiusalama na kibenki." if language == "sw" else "Write in security banking English."
-        prompt = f"""
-        Wewe ni Mkuu wa Vitisho vya Utapeli na Mtandao (Cyber Fraud Specialist) Benki Kuu.
-        Changanua takwimu za ulinzi wa miamala kwa kipindi cha {timeframe}:
-        {json.dumps(raw_data, indent=2)}
-
-        Toa tathmini ya hatari (Risk Assessment) na hatua za haraka za kuchukua kwa ufupi (maneno 60 max).
-        {lang_prompt}
-        """
-
-        model = genai.GenerativeModel(model_name)
-        response = model.generate_content(prompt)
-
-        return {
-            "status": "success",
-            "timeframe": timeframe,
-            "metrics": raw_data,
-            "ai_summary": response.text
-        }
+        data = FraudMetricsAgent.analyze_fraud(timeframe=timeframe, language=language)
+        background_tasks.add_task(
+            ws_manager.broadcast,
+            {"event": "FRAUD_UPDATE", "data": data}
+        )
+        return data
     except Exception as e:
         logger.error(f"[FRAUD AGENT ERROR]: {str(e)}")
-        traceback.print_exc()
-        raise HTTPException(
-            status_code=500, detail=f"Fraud Processing Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/agent/trend-analytics")
+async def handle_trend_analytics(
+    payload: Dict[str, Any],
+    background_tasks: BackgroundTasks,
+    timeframe: str = Query("7DAYS"),
+    language: str = Query("sw")
+):
+    try:
+        data = TrendAgent.analyze_trend(timeframe=timeframe, metrics_data=payload, language=language)
+        background_tasks.add_task(
+            ws_manager.broadcast,
+            {"event": "TREND_UPDATE", "data": data}
+        )
+        return data
+    except Exception as e:
+        logger.error(f"[TREND AGENT ERROR]: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-# 4. MODEL AUDIT AGENT
 @app.post("/agent/model-audit")
 async def handle_model_audit(req: ModelAuditReq):
     try:
-        logger.info(f"Auditing ML Model ID: {req.model_id}")
-        model = genai.GenerativeModel(model_name)
-        prompt = f"Audit Machine Learning Model #{req.model_id} with metrics: {json.dumps(req.metrics)}"
-        response = model.generate_content(prompt)
-        return {"status": "success", "audit_report": response.text}
+        return ModelAuditAgent.audit_and_save_model(model_id=req.model_id, metrics=req.metrics)
     except Exception as e:
-        logger.error(f"[MODEL AUDIT AGENT ERROR]: {str(e)}")
-        traceback.print_exc()
-        raise HTTPException(
-            status_code=500, detail=f"Model Audit Error: {str(e)}")
+        logger.error(f"[MODEL AUDIT ERROR]: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/agent/download-chart")
+async def download_chart(payload: Dict[str, Any]):
+    try:
+        chart_data = payload.get("data", [])
+        x_col = payload.get("x_col", "period")
+        y_col = payload.get("y_col", "total_volume")
+        title = payload.get("title", "Transaction Trends")
+        
+        png_bytes = ChartGeneratorAgent.generate_chart_png(chart_data, x_col, y_col, title)
+        return Response(content=png_bytes, media_type="image/png")
+    except Exception as e:
+        logger.error(f"[CHART AGENT ERROR]: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/agent/generate-report")
+async def generate_report(req: ReportGenReq):
+    try:
+        pdf_bytes = ReportGeneratorAgent.generate_pdf_report(req.title, req.summary, req.data)
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename=BoT_Report_{req.title}.pdf"}
+        )
+    except Exception as e:
+        logger.error(f"[REPORT AGENT ERROR]: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==========================================
+# GATEWAY ROUTER INTEGRATION & WEBSOCKET
+# ==========================================
+
+router = APIRouter(prefix="/api/v1/agents", tags=["Agentic AI Engine Gateway"])
+
+@router.websocket("/ws/live")
+async def websocket_endpoint(websocket: WebSocket):
+    await ws_manager.connect(websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        ws_manager.disconnect(websocket)
+    except Exception:
+        ws_manager.disconnect(websocket)
+
+# Include Router to App
+app.include_router(router)

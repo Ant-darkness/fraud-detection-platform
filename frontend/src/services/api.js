@@ -191,6 +191,46 @@ export const api = {
   },
 
   // -------------------------------------------------------------
+  // FORENSIC ANALYTICS (DIRECT BACKEND SERVICE ENDPOINTS)
+  // -------------------------------------------------------------
+  forensics: {
+    // Inaleta Uchambuzi wa Mzunguko wa Miamala (Volume, Amounts, Graph & Table Data)
+    getVolumeAnalytics: async (params = {}) => {
+      const { timeframe = '24hrs', startDate = null, endDate = null, limit = 500, offset = 0 } = params;
+      
+      const urlParams = new URLSearchParams();
+      if (timeframe) urlParams.append('timeframe', timeframe);
+      if (startDate) urlParams.append('start_date', startDate);
+      if (endDate) urlParams.append('end_date', endDate);
+      urlParams.append('limit', limit);
+      urlParams.append('offset', offset);
+
+      const response = await fetch(`${BASE_URL}/api/v1/forensics/volume?${urlParams.toString()}`, {
+        headers: getHeaders()
+      });
+      return handleResponse(response);
+    },
+
+    // Inaleta Uchambuzi wa Miamala ya Utapeli (Fraud vs Safe, Trend Charts & Flagged Table Data)
+    getFraudAnalytics: async (params = {}) => {
+      const { timeframe = '24hrs', startDate = null, endDate = null, limit = 500, offset = 0 } = params;
+      
+      const urlParams = new URLSearchParams();
+      if (timeframe) urlParams.append('timeframe', timeframe);
+      if (startDate) urlParams.append('start_date', startDate);
+      if (endDate) urlParams.append('end_date', endDate);
+      urlParams.append('limit', limit);
+      urlParams.append('offset', offset);
+
+      const response = await fetch(`${BASE_URL}/api/v1/forensics/frauds?${urlParams.toString()}`, {
+        headers: getHeaders()
+      });
+      return handleResponse(response);
+    }
+  },
+
+
+  // -------------------------------------------------------------
   // AI AGENTS & ASSISTANTS (ON-DEMAND REQUESTS - NO WEBSOCKET)
   // -------------------------------------------------------------
   agents: {
@@ -230,8 +270,82 @@ export const api = {
         body: JSON.stringify({ model_id: modelId, metrics })
       });
       return handleResponse(response);
+      }
+    
+    },
+  
+    // -------------------------------------------------------------
+  // CHART & REPORT GENERATOR AGENT UTILITIES
+  // -------------------------------------------------------------
+  
+  // 1. Chart Generator Agent (Inapakua High-Res Native PNG Graph)
+  downloadChartPng: async (payload = {}) => {
+    /*
+      Expected Payload:
+      {
+        "data": [{ "period": "Mon", "total_volume": 12000000 }],
+        "x_col": "period",
+        "y_col": "total_volume",
+        "title": "Mwenendo wa Miamala"
+      }
+    */
+    const response = await fetch(`${BASE_URL}/api/v1/agents/download-chart`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || "Hitilafu imetokea wakati wa kuunda chati.");
     }
+
+    // Inatengeneza Blob Object na kuanzisha Download kwenye kivinjari
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${payload.title || 'Chart'}_${Date.now()}.png`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
   },
+
+  // 2. Report Generator Agent (Inapakua Executive PDF Report)
+  downloadPdfReport: async (payload = {}) => {
+    /*
+      Expected Payload:
+      {
+        "title": "Ripoti ya Uchunguzi wa Miamala",
+        "summary": "Maelezo ya jumla ya viashiria vya fraud...",
+        "data": [{ "id": 101, "amount": 50000000, "status": "SUSPICIOUS" }]
+      }
+    */
+    const response = await fetch(`${BASE_URL}/api/v1/agents/generate-report`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || "Hitilafu imetokea wakati wa kutengeneza ripoti ya PDF.");
+    }
+
+    // Inatengeneza Blob Object na kuanzisha Download ya PDF
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const cleanTitle = (payload.title || 'Executive_Report').replace(/\s+/g, '_');
+    link.download = `BoT_Report_${cleanTitle}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
+
 
   // -------------------------------------------------------------
   // AI MODELS MANAGEMENT

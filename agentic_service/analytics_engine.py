@@ -2,7 +2,6 @@ import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
-
 def get_db_connection():
     return psycopg2.connect(
         host=os.getenv("DB_HOST", "fraud-postgres"),
@@ -12,7 +11,6 @@ def get_db_connection():
         password=os.getenv("DB_PASSWORD", "Fraud@2026")
     )
 
-
 def parse_timeframe(timeframe: str) -> str:
     mapping = {
         "24HRS": "24 HOURS",
@@ -21,11 +19,6 @@ def parse_timeframe(timeframe: str) -> str:
         "1YEAR": "365 DAYS"
     }
     return mapping.get(timeframe.upper(), "7 DAYS")
-
-
-# ==========================================
-# 1. VOLUME ANALYTICS QUERY
-# ==========================================
 
 def fetch_volume_data(timeframe: str) -> dict:
     interval = parse_timeframe(timeframe)
@@ -43,11 +36,6 @@ def fetch_volume_data(timeframe: str) -> dict:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(query)
             return dict(cur.fetchone() or {})
-
-
-# ==========================================
-# 2. FRAUD FORENSICS QUERY
-# ==========================================
 
 def fetch_fraud_data(timeframe: str) -> dict:
     interval = parse_timeframe(timeframe)

@@ -1,4 +1,4 @@
-CREATE TADABASE 
+CREATE TADABASE SQLSERVER
 ```docker exec -it sqlserver /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "Fraud@2026" -C```
 
 ENTER KAFKA BASH

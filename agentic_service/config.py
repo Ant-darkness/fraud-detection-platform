@@ -12,11 +12,10 @@ DB_NAME = os.getenv("DB_NAME", "FraudDB")
 DB_USER = os.getenv("DB_USER", "postgres")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "Fraud@2026")
 
-# URL-encode user na password kuzuia matatizo ya alama kama '@'
+# URL-encode credentials
 encoded_user = quote_plus(DB_USER)
 encoded_password = quote_plus(DB_PASSWORD)
 
-# Construct DATABASE_URL if not provided directly in .env
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
     f"postgresql://{encoded_user}:{encoded_password}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
